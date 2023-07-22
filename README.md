@@ -109,4 +109,20 @@ plugin - 1
       name=Install firewalld so we can disable it in the playbook. ['dnf']
   :
   :
+      name=Run Solr installation script. ['command']
+      name=Ensure solr is started and enabled on boot. ['service']
+[ansible-for-devops/tests/test-plugin.yml]
+  play-1:
+----
+[ File dependencies ]
+WARN:  A variable is contained in a file reference: template -> ../templates/{{ item }}.j2
+GraphViz dot file dependencies.dot is created.
 ```
+
+5. Generated Graphviz dot file can be converted into a diagram if you have installed GraphViz
+on your machine. For example, for converting the file into a SVG file, run the `dot` command like
+
+```
+$ dot -Tsvg dependencies.dot > dependencies.svg
+```
+You can open the created SVG file in a web browser, such as Chrome/Firefox.

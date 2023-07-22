@@ -10,7 +10,8 @@ from ansiblelint_main import ansiblelint_main
 
 class LintableDict(dict):
     def __init__(self, lintable: Lintable):
-        self['name'] = str(lintable.name)
+
+        self['name'] = str(lintable.path.name) # str(lintable.name) set a name without the directory
         self['kind'] = str(lintable.kind)
         self['filename'] = str(lintable.filename)
         self['dir'] = str(lintable.dir)
