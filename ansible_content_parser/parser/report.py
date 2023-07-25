@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import sys
 
 from collections import Counter
 
@@ -17,35 +16,23 @@ fillcolors = {
     "tasks": "lightblue",
     "jinja2": "khaki",
     "vars": "lightgreen",
+    "handlers": "red",
     "yaml": "white",
 }
 
-def report(json_file: str, dot_file: str):
-
-    with open(json_file) as f:
-        result = json.load(f)
-        files = result['files']
-
-    file_dict = {os.path.realpath(f['filename']):f for f in files}
-
-    print('----')
-    print('[ List of files with identified file types ]')
-    kinds = {f['filename']: f['kind'] for f in files}
-    for filename in sorted(kinds):
-        if kinds[filename] != '':   # Skip files that was not identified by ansible-lint
-            print(f'{filename} - {kinds[filename]}')
-
-    print('----')
-    print('[ File counts per type ]')
+def filetype_summary(result):
+    kinds = {f['filename']: f['kind'] for f in result['files']}
     counts = Counter(kinds.values())
+    summary = []
     for kind in sorted(counts, key=lambda x: counts[x], reverse=True):
         kind_str = '(file type not identified)' if kind == '' else kind
-        print(f'{kind_str} - {counts[kind]}')
+        summary.append((kind_str, counts[kind]))
+        print(f'{kind} - {counts[kind]}')
+    return summary
 
-    print('----')
-    print('[ Tasks found in playbooks ]')
-
-    for f in files:
+def module_summary(result):
+    modules = []
+    for f in result['files']:
         if f['kind'] == 'playbook':
             print(f"[{f['filename']}]")
             for i, seq in enumerate(f['state']):
@@ -58,22 +45,56 @@ def report(json_file: str, dot_file: str):
                                 keys = [key for key in task
                                         if key != 'name' and not key.startswith('__') and key not in known_fields]
                                 print(f"      name={task['name']} {keys}")
+                                if len(keys) == 1:
+                                    modules.append(keys[0])
                             elif 'import_tasks' in task:
                                 print(f"      import_tasks={task['import_tasks']}")
                             else:
                                 print(f"???   {task}")
 
+    counts = Counter(modules)
+    summary = []
+    for module in sorted(counts, key=lambda x: counts[x], reverse=True):
+        summary.append((module, counts[module]))
+    return summary
+
+def report(json_file: str, dot_file: str):
+
+    with open(json_file) as f:
+        result = json.load(f)
+        files = result['files']
+
+
+    print('----')
+    print('[ List of files with identified file types ]')
+    kinds = {f['filename']: f['kind'] for f in files}
+    for filename in sorted(kinds):
+        if kinds[filename] != '':   # Skip files that was not identified by ansible-lint
+            print(f'{filename} - {kinds[filename]}')
+
+    print('----')
+    print('[ File counts per type ]')
+    filetype_summary(result)
+
+    print('----')
+    print('[ Tasks found in playbooks ]')
+    module_summary(result)
 
     if dot_file:
-        generate_graphviz_dot_file(dot_file, files, file_dict)
+        generate_graphviz_dot_file(dot_file, result)
 
     return 0
 
 
-def generate_graphviz_dot_file(dot_file, files, file_dict):
+def generate_graphviz_dot_file(dot_file, result):
+    files = result['files']
+    file_dict = {os.path.realpath(f['filename']):f for f in files}
     def drop_repo_name(s: str):
-        i = s.index('/')
-        return s[i + 1:]
+        if '/' in s:
+            i = s.index('/')
+            return s[i + 1:]
+        else:
+            return s
 
     def option_string(f: dict):
         filename = drop_repo_name(f["filename"])
@@ -82,7 +103,10 @@ def generate_graphviz_dot_file(dot_file, files, file_dict):
             label = filename[:i + 1] + '\\n' + filename[i + 1:]
         else:
             label = filename
-        return f'  "{filename}" [label="{label}",fillcolor={fillcolors[f["kind"]]}]\n'
+        return \
+            f'  "{filename}" [label="{label}",fillcolor={fillcolors[f["kind"]]}]\n' \
+            if f["kind"] in fillcolors else \
+            f'  "{filename}" [label="{label}"]\n'
 
     with open(dot_file, 'w') as dot:
         dot.write('digraph {\n')
@@ -96,7 +120,7 @@ def generate_graphviz_dot_file(dot_file, files, file_dict):
         print('[ File dependencies ]')
 
         for f in files:
-            if f['kind'] in fillcolors.keys():
+            if f['kind'] != "":
                 dot.write(option_string(f))
 
         for f in files:
@@ -126,7 +150,7 @@ def generate_graphviz_dot_file(dot_file, files, file_dict):
                                             dot.write(f'  "{drop_repo_name(f["filename"])}" -> "{name}"\n')
 
                     find_element(seq, ['import_playbook', 'vars_files'])
-                    for task_type in ['pre_tasks', 'tasks', 'post_tasks']:
+                    for task_type in ['pre_tasks', 'tasks', 'post_tasks', 'handlers']:
                         if task_type in seq:
                             for task in seq[task_type]:
                                 find_element(task, ['import_tasks'])

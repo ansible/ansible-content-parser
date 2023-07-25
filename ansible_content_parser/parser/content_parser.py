@@ -1,11 +1,14 @@
+import contextlib
 import json
+import os
 import sys
 
-from ansiblelint.errors import MatchError
 from ansiblelint.file_utils import Lintable
+from ansiblelint.formatters import CodeclimateJSONFormatter
 from ansible.parsing.yaml.objects import AnsibleMapping, AnsibleSequence
 
-from ansiblelint_main import ansiblelint_main
+from parser.lint import ansiblelint_main
+from pathlib import Path
 
 
 class LintableDict(dict):
@@ -34,32 +37,42 @@ class LintableDict(dict):
         return {
             k:self.parse_ansible_object(v)
             for k,v in o.items()
-            if not (k.startswith('__') or k.endswith('__'))
+            if not isinstance(k, str) or not (k.startswith('__') or k.endswith('__'))
         }
 
-class MatchErrorDict(dict):
-    def __init__(self, matchError: MatchError):
-        self['column'] = matchError.column
-        self['details'] = matchError.details
-        self['filename'] = matchError.filename
-        self['fixed'] = matchError.fixed
-        self['ignored'] = matchError.ignored
-        self['level'] = matchError.level
-        self['lineno'] = matchError.lineno
-        self['match_type'] = None if matchError.match_type is None else str(matchError.match_type)
-        self['message'] = matchError.message
-        self['rule'] = matchError.rule.id
-        self['tag'] = matchError.tag
-        self['task'] = None if matchError.task is None else matchError.task.name
+def get_matches(matches):
+    # From ansiblelint/app.py
+    """Display given matches (if they are not fixed)."""
+    matches = [match for match in matches if not match.fixed]
 
+    formatter = CodeclimateJSONFormatter(Path.cwd(), display_relative_path=True)
+    json_string = formatter.format_result(matches)
+    return json.loads(json_string)
+
+# https://stackoverflow.com/questions/6194499/pushd-through-os-system
+@contextlib.contextmanager
+def pushd(new_dir):
+    previous_dir = os.getcwd()
+    os.chdir(new_dir)
+    try:
+        yield
+    finally:
+        os.chdir(previous_dir)
+
+def execute_ansiblelint(argv, work_dir='../work'):
+    with pushd(work_dir):
+        result, mark_as_success = ansiblelint_main(argv)
+        serializable_result = {
+            "files": [LintableDict(lintable) for lintable in result.files],
+            "matches": get_matches(result.matches)
+        }
+        with open(os.path.join(work_dir,'result.json'), 'w') as f:
+            f.write(json.dumps(serializable_result, indent=2))
+    return serializable_result
 
 def main(argv: list[str] | None = None) -> int:
     try:
-        result = ansiblelint_main(argv)
-        serializable_result = {
-            "files": [LintableDict(lintable) for lintable in result.files],
-            "matches": [MatchErrorDict(matchError) for matchError in result.matches]
-        }
+        serializable_result = execute_ansiblelint(argv)
         print(json.dumps(serializable_result, indent=2))
         return 0
     except Exception as exc:

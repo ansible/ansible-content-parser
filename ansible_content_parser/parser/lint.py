@@ -5,6 +5,7 @@ from ansiblelint.runner import LintResult
 from ansiblelint.__main__ import (
     __version__,
     _do_list,
+    _do_transform,
     _logger,
     escape,
     get_app,
@@ -12,6 +13,7 @@ from ansiblelint.__main__ import (
     get_version_warning,
     initialize_logger,
     initialize_options,
+    load_ignore_txt,
     log_entries,
     options,
     path_inject,
@@ -26,7 +28,7 @@ from ansiblelint.color import (
 
 def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
 
-    # FROM HERE ---- COPIED FROM ansiblelint/ansiblelint_main.py
+    # FROM HERE ---- COPIED FROM ansiblelint/__main__.py
     """Linter CLI entry point."""
     # alter PATH if needed (venv support)
     path_inject()
@@ -89,7 +91,33 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
     if isinstance(options.tags, str):
         options.tags = options.tags.split(",")  # pragma: no cover
     result = _get_matches(rules, options)
-    # TO HERE ---- COPIED FROM ansiblelint/ansiblelint_main.py
 
-    return result
+    if options.write_list:
+        ruamel_safe_version = "0.17.26"
+        from packaging.version import Version
+        from ruamel.yaml import __version__ as ruamel_yaml_version_str
+
+        if Version(ruamel_safe_version) > Version(ruamel_yaml_version_str):
+            _logger.warning(
+                "We detected use of `--write` feature with a buggy ruamel-yaml %s library instead of >=%s, upgrade it before reporting any bugs like dropped comments.",
+                ruamel_yaml_version_str,
+                ruamel_safe_version,
+            )
+        _do_transform(result, options)
+
+    mark_as_success = True
+
+    if options.strict and result.matches:
+        mark_as_success = False
+
+    # Remove skip_list items from the result
+    result.matches = [m for m in result.matches if m.tag not in app.options.skip_list]
+    # Mark matches as ignored inside ignore file
+    ignore_map = load_ignore_txt(options.ignore_file)
+    for match in result.matches:
+        if match.tag in ignore_map[match.filename]:
+            match.ignored = True
+    # TO HERE ---- COPIED FROM ansiblelint/__main__.py
+
+    return result, mark_as_success
 

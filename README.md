@@ -5,11 +5,12 @@
 As of today (2023-07-21) this repository contains a very early 
 PoC for [AAP-12832](https://issues.redhat.com/browse/AAP-12832).
 
-Three Python scripts are implemented in the `ansible_content_parser` subdirectory:
+Four Python scripts are implemented in the `ansible_content_parser` subdirectory:
 
-- **ansiblelint_main.py** This was built based on the `main()` routine of the 
+- **lint.py** This was built based on the `main()` routine of the 
 `ansible-lint` tool. It invokes `ansible-lint` in the same way as the original code does, but
 returns the internal `LintResult` object, which contains the detailed information about the execution.
+- **download.py** This file clones a GitHub repository using functions provided by the `GitPython` library.
 - **parser.py** This file provides the`main()` routine of the parser. It invokes `ansible-lint`
 using the `ansiblelint_main()` method exported in `ansiblelint_main.py` and convert the returned
 `LintResult` object into a JSON string.
@@ -22,6 +23,28 @@ pip3 install -r requirements.txt
 ```
 
 ## Execution
+
+There are two ways to execute the tool:
+
+- Though Web UI
+- From Commandline
+
+### Web UI
+1. Create the work directory `work` under the project root.
+```commandline
+mkdir work
+```
+2. Change to the `ansible_content_parser` directory.
+```commandline
+cd ansible_content_parser
+```
+3. Execute `ui/app.py` with the following command.
+```commandline
+PYTHONPATH=$PYTHONPATH:. python3 ui/app.py
+```
+4. Open http://localhost:8080/ in your browser and follow the instructions.
+
+### Commandline
 1. Create the work directory `work` under the project root and
 change the current directory
 ```commandline
