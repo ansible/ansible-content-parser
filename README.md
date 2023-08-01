@@ -55,9 +55,14 @@ cd work
 ```commandline
 git clone https://github.com/geerlingguy/ansible-for-devops.git
 ```
-3. Execute the parser and redirect the output to a JSON file
+3. Change directory to `../ansible_content_parser`
 ```commandline
-python3 ../ansible-content-parser/parser.py -v ansible-for-devops > result.json
+cd ../ansible_content_parser
+```
+
+4.Execute the parser and redirect the output to a JSON file
+```commandline
+ PYTHONPATH=$PYTHONPATH:. python3 parser/content_parser.py  -v ansible-for-devops > ../work/result.json
 ```
 
 If the code runs successfully, you'll see outputs (note: they appear in stderr) like:
