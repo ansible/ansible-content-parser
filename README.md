@@ -147,14 +147,6 @@ You can execute ansible-content-parser from a container image.
 the root directory of a cloned repository.
 - `/mnt/output` Directory where output files are written.
 
-### Preparation
-
-In the container build, ARI (Ansible Risk Insights) files are copied 
-from the `ari` folder, which
-is not included in the repository. Please prepare those ARI files before
-running the build. ARI files should be stored in the way described in the
-[README for ansible-wisdom-service](https://github.com/ansible/ansible-wisdom-service#enabling-postprocess-with-ari).
-
 ### Build
 
 Don't forget to add the last dot (`.`)

@@ -8,7 +8,7 @@ RUN dnf clean dbcache
 COPY ansible_content_parser /var/ansible_content_parser/ansible_content_parser
 COPY requirements.txt /var/ansible_content_parser
 COPY pipeline.sh /var/ansible_content_parser
-COPY ari /var/ari
+# COPY ari /var/ari
 
 WORKDIR /var/ansible_content_parser
 RUN pip3.11 install -r requirements.txt --no-cache-dir
