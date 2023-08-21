@@ -13,7 +13,7 @@ files found in the directory and lint errors.
 
 ## Main Scripts included
 
-Following Python scripts are implemented in the `src/ansiblecontentparser` subdirectory:
+Following Python scripts are implemented in the `src/ansible_content_parser` subdirectory:
 
 - **__main__.py** This file provides the`main()` routine of the parser. It invokes `ansible-lint`
 using the `ansiblelint_main()` method exported in `lint.py` and convert the returned
@@ -52,13 +52,13 @@ $ cd ~/git/ansible/ansible-content-parser/src
 
 3. Execute the parser and redirect the output to a JSON file
 ```commandline
-$ python3 -m ansibleconentparser  \
+$ python3 -m ansible_content_parser  \
    -u git@github.com:IBM/Ansible-OpenShift-Provisioning.git -o /var/tmp/out
 ```
 
 If the code runs successfully, you'll see outputs like:
 ```commandline
- $ python3 -m ansiblecontentparser  \            
+ $ python3 -m ansible_content_parser  \            
    -u git@github.com:IBM/Ansible-OpenShift-Provisioning.git -o /var/tmp/out
 Namespace(dir=None, source_type=None, repo_name=None, out_dir='/var/tmp/out', verbose=False, url='git@github.com:IBM/Ansible-OpenShift-Provisioning.git')
 INFO     Identified /var/tmp/out/Ansible-OpenShift-Provisioning as project root due .git directory.
@@ -113,7 +113,7 @@ Ansible Content Parser. It accepts two positional arguments:
 Following example shows how those arguments are given to report.py
 
 ```commandline
-$ PYTHONPATH=$PYTHONPATH:. python3 ansiblecontentparser/report.py \
+$ PYTHONPATH=$PYTHONPATH:. python3 ansible_content_parser/report.py \
   /var/tmp/out/lint-result.json /var/tmp/test/findings.json > sample_report.txt
 ```
 

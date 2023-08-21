@@ -24,7 +24,7 @@ classifiers = [
 keywords = ["ansible", "content", "parser"]
 
 [project.scripts]
-ansible-content-parser = "ansiblecontentparser.__main__:_run_cli_entrypoint"
+ansible-content-parser = "ansible_content_parser.__main__:_run_cli_entrypoint"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -36,7 +36,7 @@ dependencies = { file = [".config/requirements.in"] }
 
 [tool.setuptools_scm]
 local_scheme = "no-local-version"
-write_to = "src/ansiblecontentparser/version.py"
+write_to = "src/ansible_content_parser/version.py"
 
 [tools.black]
 line-length = 100

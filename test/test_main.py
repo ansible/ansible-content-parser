@@ -1,7 +1,7 @@
 import pytest
 import sys
 
-from ansiblecontentparser.__main__ import _run_cli_entrypoint
+from ansible_content_parser.__main__ import _run_cli_entrypoint
 from unittest import TestCase
 from unittest.mock import patch
 

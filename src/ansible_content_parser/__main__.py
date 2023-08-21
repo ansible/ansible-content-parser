@@ -9,7 +9,7 @@ from ansiblelint.constants import RC
 from ansiblelint.file_utils import Lintable
 from ansiblelint.formatters import CodeclimateJSONFormatter
 
-from ansiblecontentparser.lint import ansiblelint_main
+from .lint import ansiblelint_main
 from pathlib import Path
 
 
