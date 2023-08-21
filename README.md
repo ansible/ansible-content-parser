@@ -30,7 +30,7 @@ a boolean flag that indicates if the execution was successful or not.
 pip3 install -r requirements.txt
 ```
 
-## Execution
+## Parsing Content
 
 1. Create a work directory and an output directory 
 ```commandline
@@ -99,43 +99,23 @@ INFO     Executing syntax check on role roles/add_hc_workers_to_haproxy_hypershi
 INFO     Executing syntax check on role roles/dns_update (0.57s)
 ```
 
-4. Run the report.py using the generated JSON file as the input
+## Report Generation
+
+The report.py script generates a report that summarizes the results of
+Ansible Content Parser. It accepts two positional arguments:
+
+- **lint-results.json** The output from content_parser.py
+- **findings.json** An output from IBM's "sage" pipeline
+
+Following example shows how those arguments are given to report.py
 
 ```commandline
-$ $ python3 parser/report.py /var/tmp/out/lint-result.json 
-----
-[ List of files with identified file types ]
-.ansible-lint - ansible-lint-config
-mkdocs.yaml - yaml
-playbooks/0_setup.yaml - playbook
-playbooks/1_create_lpar.yaml - playbook
-playbooks/2_create_kvm_host.yaml - playbook
-playbooks/3_setup_kvm_host.yaml - playbook
-playbooks/4_create_bastion.yaml - playbook
-playbooks/5_setup_bastion.yaml - playbook
-playbooks/6_create_nodes.yaml - playbook
-playbooks/7_ocp_verification.yaml - playbook
-playbooks/create_agents_and_wait_for_install_complete.yaml - playbook
-playbooks/create_compute_node.yaml - playbook
-  :
-  :
-roles/wait_for_node/tasks/main.yaml - tasks
-roles/wait_for_node/vars/main.yaml - vars
-----
-[ File counts per type ]
-tasks - 63
-role - 54
- - 41
-jinja2 - 30
-playbook - 25
-vars - 13
-yaml - 12
-ansible-lint-config - 3
-meta - 2
-requirements - 2
-handlers - 2
-python - 1
+$ PYTHONPATH=$PYTHONPATH:. python3 parser/report.py \
+  /var/tmp/out/lint-result.json /var/tmp/test/findings.json > sample_report.txt
 ```
+
+**Note:** As of writing this (2023-08-17), the "sage" pipeline needs to be executed
+separately. [A report output](sample_report.txt) is included in this repo as a sample.
 
 ## Execute ansible-content-parser from a container image
 
