@@ -118,6 +118,7 @@ def _run_cli_entrypoint() -> None:
     except RuntimeError as exc:  # pragma: no cover
         raise SystemExit(exc) from exc
 
+    # If ansible-lint was executed successfully, run the sage pipeline.
     args.ari_kb_data_dir = os.getenv("ARI_KB_DATA_DIR", None)
     if args.url:
         from .downloader import Downloader
@@ -139,11 +140,26 @@ def _run_cli_entrypoint() -> None:
         from importlib import import_module
         sage = import_module('ansible_customization_data.sage')
         rc = sage.scan(**sage_scanning_args)
+        if rc is not None and rc != 0: # TODO
+            sys.exit(rc)
     except KeyboardInterrupt:  # pragma: no cover
         sys.exit(RC.EXIT_CONTROL_C)
     except RuntimeError as exc:  # pragma: no cover
         raise SystemExit(exc) from exc
 
+    # If the sage pipeline was executed successfully, generate the final report.
+    print('Generate parser-report.txt...')
+    try:
+        from .report import main as report_main
+        report_main([
+            os.path.join(args.out_dir, 'lint-result.json'),
+            os.path.join(args.out_dir, 'sage-objects.json'),
+            os.path.join(args.out_dir, 'parser-report.txt')
+        ])
+    except KeyboardInterrupt:  # pragma: no cover
+        sys.exit(RC.EXIT_CONTROL_C)
+    except RuntimeError as exc:  # pragma: no cover
+        raise SystemExit(exc) from exc
     sys.exit(rc)
 
 if __name__ == '__main__':
