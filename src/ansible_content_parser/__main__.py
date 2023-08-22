@@ -118,35 +118,31 @@ def _run_cli_entrypoint() -> None:
     except RuntimeError as exc:  # pragma: no cover
         raise SystemExit(exc) from exc
 
-    # !!! TODO !!! Following lines will invoke the Sage pipeline after Ansible Content Parser
-    # completes. These lines are commented out for now because a minor code change is required
-    # for making them work.
-    #
-    # try:
-    #     argv = []
-    #     if args.dir:
-    #         argv.extend(['-d', args.dir])
-    #     elif args.url:
-    #         from .downloader import Downloader
-    #         repo_name = Downloader.get_repo_name(args.url)
-    #         argv.extend(['-d', os.path.join(args.out_dir, repo_name)])
-    #     if args.out_dir:
-    #         argv.extend(['-o', args.out_dir])
-    #     if args.source_type:
-    #         args.extend(['-t', args.source_type])
-    #     if args.repo_name:
-    #         args.extend(['-r', args.repo_name])
-    #     if args.verbose:
-    #         os.environ['SAGE_LOG_LEVEL'] = 'debug'
-    #
-    #     from importlib import import_module
-    #     custom_scan = import_module('sage.custom_scan.custom_scan')
-    #
-    #     rc = custom_scan.main(argv)
-    # except KeyboardInterrupt:  # pragma: no cover
-    #     sys.exit(RC.EXIT_CONTROL_C)
-    # except RuntimeError as exc:  # pragma: no cover
-    #     raise SystemExit(exc) from exc
+    args.ari_kb_data_dir = os.getenv("ARI_KB_DATA_DIR", None)
+    if args.url:
+        from .downloader import Downloader
+        args.repo_name = Downloader.get_repo_name(args.url)
+        args.dir = os.path.join(args.out_dir, args.repo_name)
+
+    try:
+        sage_scanning_args = {
+            "ari_kb_data_dir": args.ari_kb_data_dir,
+            "target_dir": args.dir,
+            "output_dir": args.out_dir,
+            "repo_name": args.repo_name,
+            "source_type": args.source_type,
+            "repo_url": args.url,
+        }
+        if args.verbose:
+            os.environ['SAGE_LOG_LEVEL'] = 'debug'
+
+        from importlib import import_module
+        sage = import_module('ansible_customization_data.sage')
+        rc = sage.scan(**sage_scanning_args)
+    except KeyboardInterrupt:  # pragma: no cover
+        sys.exit(RC.EXIT_CONTROL_C)
+    except RuntimeError as exc:  # pragma: no cover
+        raise SystemExit(exc) from exc
 
     sys.exit(rc)
 
