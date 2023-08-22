@@ -1,0 +1,50 @@
+[build-system]
+requires = [
+  "setuptools >= 65.3.0", # required by pyproject+setuptools_scm integration and editable installs
+  "setuptools_scm[toml] >= 7.0.5", # required for "no-local-version" scheme
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+requires-python = ">=3.10" # ">=3.9" IBM's sage tool requires 3.10 or higher
+dynamic = ["version", "dependencies", "optional-dependencies"]
+name = "ansible-content-parser"
+description = "Parses a repository that contains Ansible file contents to modify files to follow best practices."
+readme = "README.md"
+authors = [
+    { "name" = "Tami Takamiya", "email" = "ttakamiy@redhat.com" },
+    { "name" = "Yuval Lahav", "email" = "ylahav@redhat.com" },
+]
+maintainers = [{ "name" = "Ansible by Red Hat", "email" = "info@ansible.com" }]
+license = {text = "TBD"}
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+keywords = ["ansible", "content", "parser"]
+
+[project.scripts]
+ansible-content-parser = "ansible_content_parser.__main__:_run_cli_entrypoint"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.dynamic]
+optional-dependencies.test = { file = [".config/requirements-test.txt"] }
+optional-dependencies.lock = { file = [".config/requirements-lock.txt"] }
+dependencies = { file = [".config/requirements.in"] }
+
+[tool.setuptools_scm]
+local_scheme = "no-local-version"
+write_to = "src/ansible_content_parser/version.py"
+
+[tools.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+fast = true
+skip-string-normalization = true
+
+[tools.flake8]
+max-line-length = 100

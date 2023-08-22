@@ -1,0 +1,6 @@
+black # IDE support
+coverage[toml] >= 6.4.4
+mypy # IDE support
+pytest >= 7.2.2
+tox == 4.9.0
+build == 0.10.0

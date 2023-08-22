@@ -1,13 +1,15 @@
 import argparse
 import contextlib
+import errno
 import json
 import os
 import sys
 
+from ansiblelint.constants import RC
 from ansiblelint.file_utils import Lintable
 from ansiblelint.formatters import CodeclimateJSONFormatter
 
-from parser.lint import ansiblelint_main
+from .lint import ansiblelint_main
 from pathlib import Path
 
 
@@ -55,21 +57,35 @@ def execute_ansiblelint(argv, work_dir):
         }
     return serializable_result
 
-
-def main() -> int:
+def parse_args(argv):
     parser = argparse.ArgumentParser(description="TODO")
     parser.add_argument("-d", "--dir", help='root direcotry for scan')
     parser.add_argument("-t", "--source-type", help='source type (e.g."GitHub-RHIBM")')
     parser.add_argument("-r", "--repo-name", help='repo name (e.g."IBM/Ansible-OpsnShift-Provisioning")')
     parser.add_argument("-o", "--out-dir", default="", help="output directory for the rule evaluation result")
-    args = parser.parse_args()
+    parser.add_argument("-v", "--verbose",  action='store_true', help="explain what is being done")
+    parser.add_argument("-u", "--url", help="repository URL")
+    args = parser.parse_args(argv)
+    if not (args.out_dir and (args.dir or args.url)) :
+        parser.print_help()
+        return None
+    return args
+
+def main(argv) -> int:
+    args = parse_args(argv)
+    if args is None:
+        exit(1)
     print(args)
 
-    if not args.dir or not args.out_dir:
-        parser.print_help()
-        exit(1)
+    if args.url:
+        from .downloader import Downloader
+        d = Downloader(args.out_dir)
+        repo_name = d.extract(args.url)
+        args.dir = os.path.join(args.out_dir, repo_name)
 
-    argv = ['-v', '--write']
+    argv = ['--write']
+    if args.verbose:
+        argv.append('-v')
 
     try:
         serializable_result = execute_ansiblelint(argv, args.dir)
@@ -82,6 +98,57 @@ def main() -> int:
         print(str(exc), sys.stderr)
         return -1
 
+def _run_cli_entrypoint() -> None:
+    """Invoke the main entrypoint with current CLI args.
+
+    This function also processes the runtime exceptions.
+    """
+    try:
+        argv = sys.argv[1:]
+        args = parse_args(argv)
+        rc = main(argv)
+        if rc != 0:
+            sys.exit(rc)
+    except OSError as exc:
+        # NOTE: Only "broken pipe" is acceptable to ignore
+        if exc.errno != errno.EPIPE:  # pragma: no cover
+            raise
+    except KeyboardInterrupt:  # pragma: no cover
+        sys.exit(RC.EXIT_CONTROL_C)
+    except RuntimeError as exc:  # pragma: no cover
+        raise SystemExit(exc) from exc
+
+    # !!! TODO !!! Following lines will invoke the Sage pipeline after Ansible Content Parser
+    # completes. These lines are commented out for now because a minor code change is required
+    # for making them work.
+    #
+    # try:
+    #     argv = []
+    #     if args.dir:
+    #         argv.extend(['-d', args.dir])
+    #     elif args.url:
+    #         from .downloader import Downloader
+    #         repo_name = Downloader.get_repo_name(args.url)
+    #         argv.extend(['-d', os.path.join(args.out_dir, repo_name)])
+    #     if args.out_dir:
+    #         argv.extend(['-o', args.out_dir])
+    #     if args.source_type:
+    #         args.extend(['-t', args.source_type])
+    #     if args.repo_name:
+    #         args.extend(['-r', args.repo_name])
+    #     if args.verbose:
+    #         os.environ['SAGE_LOG_LEVEL'] = 'debug'
+    #
+    #     from importlib import import_module
+    #     custom_scan = import_module('sage.custom_scan.custom_scan')
+    #
+    #     rc = custom_scan.main(argv)
+    # except KeyboardInterrupt:  # pragma: no cover
+    #     sys.exit(RC.EXIT_CONTROL_C)
+    # except RuntimeError as exc:  # pragma: no cover
+    #     raise SystemExit(exc) from exc
+
+    sys.exit(rc)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
