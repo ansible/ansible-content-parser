@@ -7,7 +7,6 @@ import sys
 
 from ansiblelint.constants import RC
 from ansiblelint.file_utils import Lintable
-from ansiblelint.formatters import CodeclimateJSONFormatter
 
 from .lint import ansiblelint_main
 from pathlib import Path
@@ -27,16 +26,6 @@ class LintableDict(dict):
         self['updated'] = bool(lintable.updated)
 
 
-def get_matches(matches):
-    # From ansiblelint/app.py
-    """Display given matches (if they are not fixed)."""
-    matches = [match for match in matches if not match.fixed]
-
-    formatter = CodeclimateJSONFormatter(Path.cwd(), display_relative_path=True)
-    json_string = formatter.format_result(matches)
-    return json.loads(json_string)
-
-
 # https://stackoverflow.com/questions/6194499/pushd-through-os-system
 @contextlib.contextmanager
 def pushd(new_dir):
@@ -53,7 +42,6 @@ def execute_ansiblelint(argv, work_dir):
         result, mark_as_success = ansiblelint_main(argv)
         serializable_result = {
             "files": [LintableDict(lintable) for lintable in result.files],
-            "matches": get_matches(result.matches)
         }
     return serializable_result
 
@@ -83,7 +71,9 @@ def main(argv) -> int:
         repo_name = d.extract(args.url)
         args.dir = os.path.join(args.out_dir, repo_name)
 
-    argv = ['--write']
+    sarif_file = os.path.join(args.out_dir, 'sarif.json')
+
+    argv = ['__DUMMY__', '--sarif-file', sarif_file, '--write']
     if args.verbose:
         argv.append('-v')
 
@@ -139,7 +129,7 @@ def _run_cli_entrypoint() -> None:
 
         from importlib import import_module
         sage = import_module('ansible_customization_data.sage')
-        rc = sage.scan(**sage_scanning_args)
+        rc = sage.run_pipeline(sage_scanning_args)
         if rc is not None and rc != 0: # TODO
             sys.exit(rc)
     except KeyboardInterrupt:  # pragma: no cover
@@ -153,6 +143,7 @@ def _run_cli_entrypoint() -> None:
         from .report import main as report_main
         report_main([
             os.path.join(args.out_dir, 'lint-result.json'),
+            os.path.join(args.out_dir, 'sarif.json'),
             os.path.join(args.out_dir, 'sage-objects.json'),
             os.path.join(args.out_dir, 'parser-report.txt')
         ])
@@ -163,4 +154,5 @@ def _run_cli_entrypoint() -> None:
     sys.exit(rc)
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    # main(sys.argv[1:])
+    _run_cli_entrypoint()

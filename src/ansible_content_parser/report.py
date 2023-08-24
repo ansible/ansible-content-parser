@@ -31,7 +31,7 @@ def module_summary(sage_objects_json, f):
     for module in sorted(module_counts, key=lambda x: module_counts[x], reverse=True):
         print(f'{module} - {module_counts[module]}', file=f)
 
-def report(json_file: str, sage_objects_json: str, report_file: str):
+def report(file_list: str, sarif_file:str, sage_objects_json: str, report_file: str):
 
     with (open(report_file, 'w') if report_file else sys.stdout) as f:
         import datetime
@@ -45,9 +45,13 @@ Date/Time: {timenow}
 Input: {input}
         ''', file=f)
 
-        with open(json_file) as jsonf:
+        with open(file_list) as jsonf:
             result = json.load(jsonf)
             files = result['files']
+
+        with open(sarif_file) as sarif:
+            r = json.load(sarif)
+            matches = r['runs'][0]['results']
 
         print('----', file=f)
         print('[ File counts per file type ]', file=f)
@@ -65,13 +69,11 @@ Input: {input}
 
         print('----', file=f)
         print('[ Issues found by ansible-lint ]', file=f)
-        for match in result['matches']:
-            print(f'Type: {match["type"]}', file=f)
-            print(f'Severity: {match["severity"]}', file=f)
-            print(f'Path: {match["location"]["path"]}', file=f)
-            if 'positions' in match["location"] and 'begin' in match["location"]["positions"]:
-                print(f'Line: {match["location"]["positions"]["begin"]["line"]}', file=f)
-            print(f'Description: {match["description"]}', file=f)
+        for match in matches:
+            print(f'Type: {match["ruleId"]}', file=f)
+            print(f'Path: {match["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]}', file=f)
+            print(f'Line: {match["locations"][0]["physicalLocation"]["region"]["startLine"]}', file=f)
+            print(f'Description: {match["message"]["text"]}', file=f)
             print(file=f)
         print('----', file=f)
 
@@ -79,16 +81,17 @@ Input: {input}
 
 def main(argv) -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument('json_file', help='JSON file used as the input for report generation.')
+    parser.add_argument('file_list', help='File list processed by ansible-lint')
+    parser.add_argument('sarif_file', help='SARIF JSON output from ansible-lint')
     parser.add_argument('sage_objects_json', help='sage objects')
     parser.add_argument('report_file', nargs='?', default=None, help='report_output')
     args = parser.parse_args(argv)
 
-    if not args.json_file:
+    if not args.file_list:
         parser.print_help()
         return 1
 
-    return report(args.json_file, args.sage_objects_json, args.report_file)
+    return report(args.file_list, args.sarif_file, args.sage_objects_json, args.report_file)
 
 
 if __name__ == '__main__':
