@@ -1,3 +1,4 @@
+import pathlib
 import sys
 from pathlib import Path
 from ansiblelint.runner import LintResult
@@ -7,6 +8,8 @@ from ansiblelint.__main__ import (
     _do_list,
     _do_transform,
     _logger,
+    _perform_mockings_cleanup,
+    cache_dir_lock,
     escape,
     get_app,
     get_deps_versions,
@@ -117,6 +120,21 @@ def ansiblelint_main(argv: list[str] = None) -> LintResult:
     for match in result.matches:
         if match.tag in ignore_map[match.filename]:
             match.ignored = True
+
+    app.render_matches(result.matches)
+
+    _perform_mockings_cleanup(app.options)
+    if cache_dir_lock:
+        cache_dir_lock.release()
+        pathlib.Path(cache_dir_lock.lock_file).unlink(missing_ok=True)
+    if options.mock_filters:
+        _logger.warning(
+            "The following filters were mocked during the run: %s",
+            ",".join(options.mock_filters),
+        )
+
     # TO HERE ---- COPIED FROM ansiblelint/__main__.py
+    app.report_outcome(result, mark_as_success=mark_as_success)
+
 
     return result, mark_as_success
