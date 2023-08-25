@@ -78,6 +78,8 @@ repos:
         additional_dependencies:
           - pytest
           - tox
+          - ansible-lint
+          - GitPython
 
   - repo: https://github.com/pre-commit/mirrors-mypy.git
     rev: v1.5.0
@@ -89,5 +91,5 @@ repos:
         args:
           - src
           - tests
-          - --python-version=3.9
+          - --python-version=3.11
         pass_filenames: false

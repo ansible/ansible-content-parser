@@ -1,27 +1,30 @@
-import os
-import shutil
-from git import Repo
+"""Download git repositories."""
 from pathlib import Path
 
+from git import Repo
 
-class Downloader():
-    def __init__(self, work_dir, clear_work_dir=False):
+
+class Downloader:
+    """The Downloader class."""
+
+    def __init__(self, work_dir: str) -> None:
+        """Initialize the Downloader class."""
         self.work_dir = work_dir
-        if clear_work_dir and os.path.exists(work_dir):
-            shutil.rmtree(work_dir)
         Path(self.work_dir).mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def get_repo_name(url):
+    def get_repo_name(url: str) -> str:
+        """Extract the repository name from a given URL string."""
         if url:
-            if url.endswith('.git'):
+            if url.endswith(".git"):
                 url = url[:-4]
-            i = url.rfind('/')
+            i = url.rfind("/")
             if i >= 0:
-                url = url[i+1:]
+                url = url[i + 1 :]
         return url
 
-    def extract(self, repo_url):
+    def extract(self, repo_url: str) -> str:
+        """Extract a given git repository by cloning."""
         repo_name = self.get_repo_name(repo_url)
         destination = Path(self.work_dir, repo_name)
         Repo.clone_from(repo_url, destination)

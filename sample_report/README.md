@@ -1,5 +1,6 @@
 # Report Sample
-(Last update: 2023-08-21) This directory contains a report output sample (`sample_report.txt`), 
+
+(Last update: 2023-08-21) This directory contains a report output sample (`sample_report.txt`),
 which was produced using the [Ansible-OpenShift-Provisioning](https://github.com/IBM/Ansible-OpenShift-Provisioning)
 repository as input. Metadata outputs from ansible-content-parser and Sage pipeline are also included
 for references.

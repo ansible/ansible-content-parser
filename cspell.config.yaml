@@ -27,6 +27,8 @@ ignorePaths:
   - tox.ini
   # Sample tox configurations
   - docs/*.ini
+  # Sample result
+  - sample_report/*
 
 languageSettings:
   - languageId: python

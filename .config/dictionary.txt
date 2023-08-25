@@ -1,0 +1,13 @@
+ansiblelint
+commandline
+epel
+epipe
+lintable
+mockings
+pythonpath
+ruamel
+rulesdirs
+sarif
+setuptools
+takamiya
+timenow

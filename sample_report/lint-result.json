@@ -2981,10 +2981,7 @@
     {
       "type": "issue",
       "check_name": "syntax-check[specific]",
-      "categories": [
-        "core",
-        "unskippable"
-      ],
+      "categories": ["core", "unskippable"],
       "url": "https://ansible-lint.readthedocs.io/rules/syntax-check/",
       "severity": "major",
       "description": "couldn't resolve module/action 'ibm.ibm_zhmc.zhmc_partition'. This often indicates a misspelling, missing collection, or incorrect module path.",
@@ -3002,10 +2999,7 @@
     {
       "type": "issue",
       "check_name": "syntax-check[specific]",
-      "categories": [
-        "core",
-        "unskippable"
-      ],
+      "categories": ["core", "unskippable"],
       "url": "https://ansible-lint.readthedocs.io/rules/syntax-check/",
       "severity": "major",
       "description": "couldn't resolve module/action 'ibm.ibm_zhmc.zhmc_partition'. This often indicates a misspelling, missing collection, or incorrect module path.",
@@ -3023,10 +3017,7 @@
     {
       "type": "issue",
       "check_name": "syntax-check[specific]",
-      "categories": [
-        "core",
-        "unskippable"
-      ],
+      "categories": ["core", "unskippable"],
       "url": "https://ansible-lint.readthedocs.io/rules/syntax-check/",
       "severity": "major",
       "description": "the role 'ansible-role-epel' was not found in /var/tmp/Ansible-OpenShift-Provisioning/roles/robertdebock.epel/molecule/default/roles:/home/ttakamiy/.cache/ansible-compat/184aba/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles/robertdebock.epel/molecule/default",
@@ -3044,10 +3035,7 @@
     {
       "type": "issue",
       "check_name": "syntax-check[specific]",
-      "categories": [
-        "core",
-        "unskippable"
-      ],
+      "categories": ["core", "unskippable"],
       "url": "https://ansible-lint.readthedocs.io/rules/syntax-check/",
       "severity": "major",
       "description": "the role 'robertdebock.bootstrap' was not found in /var/tmp/Ansible-OpenShift-Provisioning/roles/robertdebock.epel/molecule/default/roles:/home/ttakamiy/.cache/ansible-compat/184aba/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles/robertdebock.epel/molecule/default",
@@ -3065,10 +3053,7 @@
     {
       "type": "issue",
       "check_name": "syntax-check[specific]",
-      "categories": [
-        "core",
-        "unskippable"
-      ],
+      "categories": ["core", "unskippable"],
       "url": "https://ansible-lint.readthedocs.io/rules/syntax-check/",
       "severity": "major",
       "description": "the role 'robertdebock.bootstrap' was not found in /var/tmp/Ansible-OpenShift-Provisioning/roles/robertdebock.openvpn/molecule/default/roles:/home/ttakamiy/.cache/ansible-compat/184aba/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles:/var/tmp/Ansible-OpenShift-Provisioning/roles/robertdebock.openvpn/molecule/default",

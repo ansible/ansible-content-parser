@@ -1,7 +1,11 @@
+"""Invoke ansible-lint."""
+from __future__ import annotations
+
 import pathlib
 import sys
+
 from pathlib import Path
-from ansiblelint.runner import LintResult
+from typing import TYPE_CHECKING
 
 from ansiblelint.__main__ import (
     __version__,
@@ -22,15 +26,19 @@ from ansiblelint.__main__ import (
     path_inject,
     support_banner,
 )
-
 from ansiblelint.color import (
     console,
     console_options,
     reconfigure,
 )
 
-def ansiblelint_main(argv: list[str] = None) -> LintResult:
 
+if TYPE_CHECKING:
+    from ansiblelint.runner import LintResult
+
+
+# pylint: disable=too-many-statements,too-many-locals
+def ansiblelint_main(argv: list[str] | None = None) -> LintResult:  # noqa: C901
     # FROM HERE ---- COPIED FROM ansiblelint/__main__.py
     """Linter CLI entry point."""
     # alter PATH if needed (venv support)
@@ -135,6 +143,5 @@ def ansiblelint_main(argv: list[str] = None) -> LintResult:
 
     # TO HERE ---- COPIED FROM ansiblelint/__main__.py
     app.report_outcome(result, mark_as_success=mark_as_success)
-
 
     return result, mark_as_success

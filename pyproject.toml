@@ -4,8 +4,8 @@ requires = ["setuptools >= 45", "setuptools_scm[toml]>=6.2"]
 
 [project]
 authors = [
-    { "name" = "Tami Takamiya", "email" = "ttakamiy@redhat.com" },
-    { "name" = "Yuval Lahav", "email" = "ylahav@redhat.com" },
+  {"email" = "ttakamiy@redhat.com", "name" = "Tami Takamiya"},
+  {"email" = "ylahav@redhat.com", "name" = "Yuval Lahav"}
 ]
 classifiers = [
   'Development Status :: 2 - Pre-Alpha',
@@ -40,8 +40,17 @@ homepage = "https://github.com/ansible/ansible-content-parser/"
 repository = "https://github.com/ansible/ansible-content-parser/"
 
 [tool.mypy]
+exclude = "(venv|build|dist|test/local-content|site-packages|~/.pyenv|examples/playbooks/collections|plugins/modules)"
 files = ["src", "tests"]
 strict = true
+
+[[tool.mypy.overrides]]
+ignore_missing_imports = true
+module = [
+  "ansiblelint.*",
+  "git",
+  "ruamel.yaml"
+]
 
 [tool.pydoclint]
 allow-init-docstring = true
@@ -49,18 +58,30 @@ arg-type-hints-in-docstring = false
 check-return-types = false
 style = 'google'
 
-[tool.pylint]
+[tool.pylint.IMPORTS]
+preferred-modules = ["py:pathlib"]
 
-[tool.pylint.format]
-max-line-length = 100
+[tool.pylint.MAIN]
+extension-pkg-allow-list = ["black.parsing"]
 
-[tool.pylint.master]
-good-names = "i,j,k,ex,Run,_,f,fh"
-ignore = [
-  "_version.py" # built by setuptools_scm
+[tool.pylint.MASTER]
+bad-names = [
+  "line_number", # use lineno instead
+  # spell-checker:ignore linenumber
+  "linenumber" # use lineno instead
 ]
-jobs = 0
-no-docstring-rgx = "__.*__"
+# pylint defaults + f,fh,v,id
+good-names = ["Run", "T", "_", "f", "fh", "i", "id", "j", "k", "v"]
+# Ignore as being generated:
+ignore-paths = "^src/ansiblelint/_version.*$"
+
+[tool.pylint.SUMMARY]
+# We don't need the score spamming console, as we either pass or fail
+score = "n"
+
+[tool.pylint.TYPECHECK]
+# pylint is unable to detect Namespace attributes and will throw a E1101
+generated-members = "options.*"
 
 [tool.pylint.messages_control]
 disable = [
@@ -230,13 +251,32 @@ disable = [
   "too-few-public-methods",
   "unsubscriptable-object"
 ]
+# increase from default is 50 which is too aggressive
+max-statements = 60
 
 [tool.ruff]
 builtins = ["__"]
 fix = true
+ignore = [
+  # temporary disabled until we fix them:
+  "ANN",
+  "ARG002", # Unused method argument (currently in too many places)
+  "D102", # Missing docstring in public method (currently in too many places)
+  "E501", # we use black
+  "ERA001", # auto-removal of commented out code affects development and vscode integration
+  "FBT001",
+  "FBT003",
+  "INP001", # "is part of an implicit namespace package", all false positives
+  "PERF203",
+  "PLR",
+  "PLW2901", # PLW2901: Redefined loop variable
+  "RET504", # Unnecessary variable assignment before `return` statement
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "TRY"
+]
 line-length = 100
 select = ["ALL"]
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.flake8-pytest-style]
 parametrize-values-type = "tuple"
