@@ -1,4 +1,4 @@
 # Special order section for helping pip:
 will-not-work-on-windows-try-from-wsl-instead; platform_system=='Windows'
-ansible-lint==6.17.2
-GitPython==3.1.32
+ansible-lint
+GitPython
