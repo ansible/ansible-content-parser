@@ -13,7 +13,6 @@ import sys
 import typing
 
 from collections.abc import Generator
-from importlib import import_module
 from pathlib import Path
 
 from ansiblelint.constants import RC
@@ -21,7 +20,6 @@ from ansiblelint.file_utils import Lintable
 
 from .downloader import Downloader
 from .lint import ansiblelint_main
-from .report import main as report_main
 
 
 _logger = logging.getLogger(__name__)
@@ -128,14 +126,14 @@ def main(argv: list[str]) -> int:
     return 0
 
 
-def _run_cli_entrypoint() -> None:  # noqa: C901
+def _run_cli_entrypoint() -> None:
     """Invoke the main entrypoint with current CLI args.
 
     This function also processes the runtime exceptions.
     """
     try:
         argv = sys.argv[1:]
-        options = parse_args(argv)
+        parse_args(argv)
         return_code = main(argv)
         if return_code != 0:
             sys.exit(return_code)
@@ -148,49 +146,6 @@ def _run_cli_entrypoint() -> None:  # noqa: C901
     except RuntimeError as exc:  # pragma: no cover
         raise SystemExit(exc) from exc
 
-    # If ansible-lint was executed successfully, run the sage pipeline.
-    options.ari_kb_data_dir = os.getenv("ARI_KB_DATA_DIR", None)
-    if options.url:
-        options.repo_name = Downloader.get_repo_name(options.url)
-        options.dir = str(Path(options.out_dir) / options.repo_name)
-
-    try:
-        sage_scanning_args = {
-            "ari_kb_data_dir": options.ari_kb_data_dir,
-            "target_dir": options.dir,
-            "output_dir": options.out_dir,
-            "repo_name": options.repo_name,
-            "source_type": options.source_type,
-            "repo_url": options.url,
-        }
-        if options.verbose:
-            os.environ["SAGE_LOG_LEVEL"] = "debug"
-
-        sage = import_module("ansible_customization_data.sage")
-        return_code = sage.run_pipeline(sage_scanning_args)
-        if return_code is not None and return_code != 0:
-            sys.exit(return_code)
-    except KeyboardInterrupt:  # pragma: no cover
-        sys.exit(RC.EXIT_CONTROL_C)
-    except RuntimeError as exc:  # pragma: no cover
-        raise SystemExit(exc) from exc
-
-    # If the sage pipeline was executed successfully, generate the final report.
-    _logger.info("Generate parser-report.txt...")
-    try:
-        out_path = Path(options.out_dir)
-        report_main(
-            [
-                str(out_path / "lint-result.json"),
-                str(out_path / "sarif.json"),
-                str(out_path / "sage-objects.json"),
-                str(out_path / "parser-report.txt"),
-            ],
-        )
-    except KeyboardInterrupt:  # pragma: no cover
-        sys.exit(RC.EXIT_CONTROL_C)
-    except RuntimeError as exc:  # pragma: no cover
-        raise SystemExit(exc) from exc
     sys.exit(return_code)
 
 

@@ -33,13 +33,11 @@ repos:
           - prettier
           - prettier-plugin-toml
           - prettier-plugin-sort-json
-        exclude: ^sample_report/
 
   - repo: https://github.com/psf/black-pre-commit-mirror
     rev: 23.7.0
     hooks:
       - id: black
-        exclude: ^sample_report/
 
   - repo: https://github.com/pappasam/toml-sort
     rev: v0.23.1
