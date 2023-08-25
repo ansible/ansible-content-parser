@@ -8,23 +8,18 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ansiblelint.__main__ import (
-    __version__,
     _do_list,
     _do_transform,
     _logger,
     _perform_mockings_cleanup,
     cache_dir_lock,
-    escape,
     get_app,
-    get_deps_versions,
-    get_version_warning,
     initialize_logger,
     initialize_options,
     load_ignore_txt,
     log_entries,
     options,
     path_inject,
-    support_banner,
 )
 from ansiblelint.color import (
     console,
@@ -51,20 +46,20 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:  # noqa: C901
     console_options["force_terminal"] = options.colored
     reconfigure(console_options)
 
-    if options.version:
-        deps = get_deps_versions()
-        msg = f"ansible-lint [repr.number]{__version__}[/] using[dim]"
-        for k, v in deps.items():
-            msg += f" {escape(k)}:[repr.number]{v}[/]"
-        msg += "[/]"
-        console.print(msg, markup=True, highlight=False)
-        msg = get_version_warning()
-        if msg:
-            console.print(msg)
-        support_banner()
-        sys.exit(0)
-    else:
-        support_banner()
+    # if options.version:
+    #     deps = get_deps_versions()
+    #     msg = f"ansible-lint [repr.number]{__version__}[/] using[dim]"
+    #     for k, v in deps.items():
+    #         msg += f" {escape(k)}:[repr.number]{v}[/]"
+    #     msg += "[/]"
+    #     console.print(msg, markup=True, highlight=False)
+    #     msg = get_version_warning()
+    #     if msg:
+    #         console.print(msg)
+    #     support_banner()
+    #     sys.exit(0)
+    # else:
+    #     support_banner()
 
     initialize_logger(options.verbosity)
     for level, message in log_entries:

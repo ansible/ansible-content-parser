@@ -105,10 +105,11 @@ def main(argv: list[str]) -> int:
     """Parse arguments and execute the content parser."""
     args = parse_args(argv)
 
+    out_path = Path(args.out_dir)
+
     if args.url:
         downloader = Downloader(args.out_dir)
         repo_name = downloader.extract(args.url)
-        out_path = Path(args.out_dir)
         args.dir = str(out_path / repo_name)
 
     sarif_file = str(out_path / "sarif.json")
