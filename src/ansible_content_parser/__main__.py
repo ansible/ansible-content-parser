@@ -93,6 +93,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     if not (args.out_dir and (args.dir or args.url)):
         parser.print_help()
         sys.exit(1)
+
+    args.out_dir = str(Path(args.out_dir).resolve())
+    if args.dir:
+        args.dir = str(Path(args.dir).resolve())
+
     return args
 
 
@@ -117,7 +122,7 @@ def main(argv: list[str]) -> int:
         path_out_dir = Path(args.out_dir)
         if not path_out_dir.exists():
             path_out_dir.mkdir(parents=True)
-        with Path(args.out_dir / "lint-result.json").open("w", encoding="utf-8") as f:
+        with (path_out_dir / "lint-result.json").open("w", encoding="utf-8") as f:
             f.write(json.dumps(serializable_result, indent=2))
     except Exception:
         _logger.exception("An exception was thrown while running ansible-lint.")
