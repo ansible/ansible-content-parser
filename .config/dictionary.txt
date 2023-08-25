@@ -5,6 +5,7 @@ epipe
 lintable
 mockings
 pythonpath
+qualitygate
 ruamel
 rulesdirs
 sarif
