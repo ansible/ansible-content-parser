@@ -163,7 +163,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
         try:
             check_zip_file_is_safe(source)
             with zipfile.ZipFile(source) as zip_file:
-                zip_file.extractall(repository_path)  # NOSONAR
+                zip_file.extractall(repository_path)
                 return
         except Exception:
             _logger.exception(
@@ -176,8 +176,8 @@ def prepare_source_and_output(source: str, output: str) -> None:
             if source.endswith(ext):
                 try:
                     check_tar_file_is_safe(source)
-                    with tarfile.open(source) as tar:
-                        tar.extractall(repository_path)  # NOSONAR
+                    with tarfile.open(source) as tar:  # NOSONAR
+                        tar.extractall(repository_path)
                     return
                 except Exception:
                     _logger.exception(
@@ -233,7 +233,7 @@ def check_tar_file_is_safe(source: str) -> None:
     total_size_archive = 0
     total_entry_archive = 0
 
-    with tarfile.open(source) as f:
+    with tarfile.open(source) as f:  # NOSONAR
         for entry in f:
             tarinfo = f.extractfile(entry)
 
