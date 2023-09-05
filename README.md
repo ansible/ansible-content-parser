@@ -16,6 +16,38 @@ files found in the directory and lint errors.
 Execute the `tox` command. Installable images are created under
 the `dist` directory.
 
+## Execution
+
+`ansible-content-parser` accepts two positional parameters: `source` and `output`.
+
+### Source
+
+The first positional parameter is `source`, which specifies
+the source repository to be used. Following three types of sources are supported:
+
+1. File directory.
+2. Archive file in the following table:
+
+| File Format      | File Extension                                |
+| ---------------- | --------------------------------------------- |
+| ZIP              | .zip                                          |
+| Uncompressed TAR | .tar                                          |
+| Compressed TAR   | .tar.gz, .tgz, .tar.bz2, .tbz2, .tar.xz, .txz |
+
+3. Git URL that starts with `https://` or `git@`.
+
+### Output
+
+The second positional parameter is `output`, which specifies a writable
+directory. If the directory already exists, it has to be
+an empty directory. If it does not exist, it will be newly created with
+the given name.
+
+`ansible-content-parser` creates the`repository` subdirectory in the
+`output` directory and copies the contents of the `source` repository
+to it. The copied contents may be changed by during the execution
+of `ansible-content-parser`.
+
 ## lint-result.json
 
 `lint-result.json` is created as the result of the execution
