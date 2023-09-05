@@ -5,6 +5,7 @@ epipe
 inodes
 lintable
 mockings
+nosonar
 pythonpath
 qualitygate
 ruamel

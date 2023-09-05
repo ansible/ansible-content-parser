@@ -163,7 +163,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
         try:
             check_zip_file_is_safe(source)
             with zipfile.ZipFile(source) as zip_file:
-                zip_file.extractall(repository_path)
+                zip_file.extractall(repository_path)  # NOSONAR
                 return
         except Exception:
             _logger.exception(
@@ -177,7 +177,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
                 try:
                     check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:
-                        tar.extractall(repository_path)
+                        tar.extractall(repository_path)  # NOSONAR
                     return
                 except Exception:
                     _logger.exception(
@@ -239,7 +239,6 @@ def check_tar_file_is_safe(source: str) -> None:
 
             total_entry_archive += 1
             size_entry = 0
-            result = b""
             while True:
                 size_entry += 1024
                 total_size_archive += 1024
@@ -258,8 +257,6 @@ def check_tar_file_is_safe(source: str) -> None:
                 chunk = tarinfo.read(1024)
                 if not chunk:
                     break
-
-                result += chunk
 
             if total_entry_archive > threshold_entries:
                 msg = "too much entries in this archive, can lead to inodes exhaustion of the system"
