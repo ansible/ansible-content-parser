@@ -161,6 +161,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
     # Check if the specified source is a supported archive.
     if source.endswith(".zip"):
         try:
+            check_zip_file_is_safe(source)
             with zipfile.ZipFile(source) as zip_file:
                 zip_file.extractall(repository_path)
                 return
@@ -174,9 +175,10 @@ def prepare_source_and_output(source: str, output: str) -> None:
         for ext in supported_tar_file_extensions:
             if source.endswith(ext):
                 try:
+                    check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:
                         tar.extractall(repository_path)
-                        return
+                    return
                 except Exception:
                     _logger.exception(
                         "An exception thrown in extracting files from %s.",
@@ -197,7 +199,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
                 )
                 sys.exit(1)
 
-    # Assume the source is a local directory
+    # Assume the source is a local director
     if Path(source).is_dir():
         repository_path.rmdir()
         shutil.copytree(source, repository_path)
@@ -218,6 +220,89 @@ def setup_output(output: str) -> Path:
         _logger.error("Output directory is not empty.")
         sys.exit(1)
     return output_path
+
+
+# Ref: https://sonarcloud.io/organizations/ansible/rules?open=python%3AS5042&rule_key=python%3AS5042&tab=how_to_fix
+threshold_entries = 10000
+threshold_size = 1000000000
+threshold_ratio = 10
+
+
+def check_tar_file_is_safe(source: str) -> None:
+    """Make sure that expanding the tar file is safe."""
+    total_size_archive = 0
+    total_entry_archive = 0
+
+    with tarfile.open(source) as f:
+        for entry in f:
+            tarinfo = f.extractfile(entry)
+
+            total_entry_archive += 1
+            size_entry = 0
+            result = b""
+            while True:
+                size_entry += 1024
+                total_size_archive += 1024
+
+                ratio = size_entry / entry.size
+                # Added the check if entry.size is larger than 1024. When it is very small (like 20 bytes or so)
+                # the ratio can exceed the threshold.
+                if entry.size > 1024 and ratio > threshold_ratio:
+                    msg = "ratio between compressed and uncompressed data is highly suspicious, looks like a Zip Bomb Attack"
+                    raise RuntimeError(
+                        msg,
+                    )
+
+                if tarinfo is None:
+                    break
+                chunk = tarinfo.read(1024)
+                if not chunk:
+                    break
+
+                result += chunk
+
+            if total_entry_archive > threshold_entries:
+                msg = "too much entries in this archive, can lead to inodes exhaustion of the system"
+                raise RuntimeError(
+                    msg,
+                )
+
+            if total_size_archive > threshold_size:
+                msg = "the uncompressed data size is too much for the application resource capacity"
+                raise RuntimeError(
+                    msg,
+                )
+
+
+def check_zip_file_is_safe(source: str) -> None:
+    """Make sure that expanding the zip file is safe."""
+    total_size_archive = 0
+    total_entry_archive = 0
+
+    with zipfile.ZipFile(source, "r") as f:
+        for info in f.infolist():
+            data = f.read(info)
+            total_entry_archive += 1
+
+            total_size_archive = total_size_archive + len(data)
+            ratio = len(data) / info.compress_size
+            if ratio > threshold_ratio:
+                msg = "ratio between compressed and uncompressed data is highly suspicious, looks like a Zip Bomb Attack"
+                raise RuntimeError(
+                    msg,
+                )
+
+            if total_size_archive > threshold_size:
+                msg = "the uncompressed data size is too much for the application resource capacity"
+                raise RuntimeError(
+                    msg,
+                )
+
+            if total_entry_archive > threshold_entries:
+                msg = "too much entries in this archive, can lead to inodes exhaustion of the system"
+                raise RuntimeError(
+                    msg,
+                )
 
 
 def _run_cli_entrypoint() -> None:
