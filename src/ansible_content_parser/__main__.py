@@ -102,6 +102,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         parser.print_help()
         sys.exit(1)
 
+    args.output = str(Path(args.output).absolute())
+
     return args
 
 
