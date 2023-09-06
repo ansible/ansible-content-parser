@@ -13,7 +13,64 @@ from unittest.mock import MagicMock, patch
 
 import git
 
-from ansible_content_parser.__main__ import _run_cli_entrypoint
+from ansible_content_parser.__main__ import main  # pylint: disable=import-error
+
+
+sample_playbook = """---
+- name: Apache server installed
+  hosts: web
+
+  tasks:
+  - name: latest Apache version installed
+    yum:
+      name: httpd
+      state: latest
+
+  - name: latest firewalld version installed
+    yum:
+      name: firewalld
+      state: latest
+
+  - name: firewalld enabled and running
+    service:
+      name: firewalld
+      enabled: true
+      state: started
+
+  - name: firewalld permits http service
+    firewalld:
+      service: http
+      permanent: true
+      state: enabled
+      immediate: yes
+
+  - name: Apache enabled and running
+    service:
+      name: httpd
+      enabled: true
+      state: started
+"""
+
+galaxy_yml = """namespace: "namespace_name"
+name: "collection_name"
+version: "1.0.12"
+readme: "README.md"
+authors:
+    - "Author1"
+    - "Author2 (https://author2.example.com)"
+    - "Author3 <author3@example.com>"
+license:
+    - "MIT"
+tags:
+    - demo
+    - collection
+repository: "https://www.github.com/my_org/my_collection"
+description: Sample description
+"""
+
+sample_playbook_name = "playbook.yml"
+galaxy_yml_name = "galaxy.yml"
+repo_name = "repo_name"
 
 
 @contextlib.contextmanager
@@ -30,10 +87,12 @@ def temp_dir() -> Generator[TemporaryDirectory[str], None, None]:
 class TestMain(TestCase):
     """The TestMain class."""
 
-    def create_playbook(self, source: TemporaryDirectory[str]) -> None:
+    def create_repo(self, source: TemporaryDirectory[str]) -> None:
         """Create a playbook YAML file."""
-        with (Path(source.name) / "a.yml").open("w") as f:
-            f.write("---\nname: test\nhosts: all\n")
+        with (Path(source.name) / sample_playbook_name).open("w") as f:
+            f.write(sample_playbook)
+        with (Path(source.name) / galaxy_yml_name).open("w") as f:
+            f.write(galaxy_yml)
 
     def create_tarball(
         self,
@@ -41,46 +100,50 @@ class TestMain(TestCase):
         compression: str = "",
     ) -> None:
         """Create a tarball."""
-        self.create_playbook(source)
+        self.create_repo(source)
         os.chdir(source.name)
-        filename = f"a.tar.{compression}" if compression else "a.tar"
+        filename = (
+            f"{repo_name}.tar.{compression}" if compression else f"{repo_name}.tar"
+        )
         mode = f"w:{compression}" if compression else "w"
         with tarfile.open(filename, mode) as tar:
-            tar.add("a.yml")
+            tar.add(sample_playbook_name)
+            tar.add(galaxy_yml_name)
 
     def create_zip_file(self, source: TemporaryDirectory[str]) -> None:
         """Create a ZIP file."""
-        self.create_playbook(source)
+        self.create_repo(source)
         os.chdir(source.name)
-        with zipfile.ZipFile("a.zip", "w") as zip_file:
-            zip_file.write("a.yml")
+        with zipfile.ZipFile(f"{repo_name}.zip", "w") as zip_file:
+            zip_file.write(sample_playbook_name)
+            zip_file.write(galaxy_yml_name)
 
     def test_cli_with_local_directory(self) -> None:
         """Run the CLI with a local directory."""
         with temp_dir() as source:
-            self.create_playbook(source)
+            self.create_repo(source)
             with temp_dir() as output:
                 testargs = ["ansible-content-parser", source.name, output.name]
                 with patch.object(sys, "argv", testargs), self.assertRaises(
                     SystemExit,
                 ) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
 
     def test_cli_with_non_archive_file(self) -> None:
         """Run the CLI with specifying a non archive file as input."""
         with temp_dir() as source:
-            self.create_playbook(source)
+            self.create_repo(source)
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    (Path(source.name) / "a.yml").as_posix(),
+                    (Path(source.name) / sample_playbook_name).as_posix(),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 1, "The exit code should be 1"
 
@@ -94,7 +157,7 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -108,7 +171,7 @@ class TestMain(TestCase):
             testargs = ["ansible-content-parser", source.name, output.name]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -119,12 +182,12 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    (Path(source.name) / "a.tar").as_posix(),
+                    (Path(source.name) / f"{repo_name}.tar").as_posix(),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
 
@@ -135,12 +198,12 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    str(Path(source.name) / "a.tar.gz"),
+                    str(Path(source.name) / f"{repo_name}.tar.gz"),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
 
@@ -149,12 +212,12 @@ class TestMain(TestCase):
         with temp_dir() as source, temp_dir() as output:
             testargs = [
                 "ansible-content-parser",
-                (Path(source.name) / "a.tar").as_posix(),
+                (Path(source.name) / f"{repo_name}.tar").as_posix(),
                 output.name,
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -165,12 +228,12 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    (Path(source.name) / "a.zip").as_posix(),
+                    (Path(source.name) / f"{repo_name}.zip").as_posix(),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
 
@@ -179,12 +242,12 @@ class TestMain(TestCase):
         with temp_dir() as source, temp_dir() as output:
             testargs = [
                 "ansible-content-parser",
-                (Path(source.name) / "a.zip").as_posix(),
+                (Path(source.name) / f"{repo_name}.zip").as_posix(),
                 output.name,
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -200,7 +263,7 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
 
@@ -216,7 +279,7 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
 
@@ -235,6 +298,6 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
