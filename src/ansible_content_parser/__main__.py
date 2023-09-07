@@ -232,6 +232,12 @@ threshold_ratio = 10
 
 def check_tar_file_is_safe(source: str) -> None:
     """Make sure that expanding the tar file is safe."""
+    if not tarfile.is_tarfile(source):
+        msg = f"{source} is not a valid tar archive file."
+        raise RuntimeError(
+            msg,
+        )
+
     total_size_archive = 0
     total_entry_archive = 0
 
@@ -275,6 +281,12 @@ def check_tar_file_is_safe(source: str) -> None:
 
 def check_zip_file_is_safe(source: str) -> None:
     """Make sure that expanding the zip file is safe."""
+    if not zipfile.is_zipfile(source):
+        msg = f"{source} is not a valid zip file."
+        raise RuntimeError(
+            msg,
+        )
+
     total_size_archive = 0
     total_entry_archive = 0
 

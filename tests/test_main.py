@@ -21,6 +21,7 @@ def temp_dir() -> Generator[TemporaryDirectory[str], None, None]:
     """Provide context with a temporary directory."""
     temp_directory = TemporaryDirectory()
     try:
+        os.chdir(temp_directory.name)
         yield temp_directory
     finally:
         temp_directory.cleanup()
@@ -34,11 +35,17 @@ class TestMain(TestCase):
         with (Path(source.name) / "a.yml").open("w") as f:
             f.write("---\nname: test\nhosts: all\n")
 
-    def create_tarball(self, source: TemporaryDirectory[str]) -> None:
+    def create_tarball(
+        self,
+        source: TemporaryDirectory[str],
+        compression: str = "",
+    ) -> None:
         """Create a tarball."""
         self.create_playbook(source)
         os.chdir(source.name)
-        with tarfile.open("a.tar", "w") as tar:
+        filename = f"a.tar.{compression}" if compression else "a.tar"
+        mode = f"w:{compression}" if compression else "w"
+        with tarfile.open(filename, mode) as tar:
             tar.add("a.yml")
 
     def create_zip_file(self, source: TemporaryDirectory[str]) -> None:
@@ -113,6 +120,22 @@ class TestMain(TestCase):
                 testargs = [
                     "ansible-content-parser",
                     (Path(source.name) / "a.tar").as_posix(),
+                    output.name,
+                ]
+                with patch.object(sys, "argv", testargs):
+                    with self.assertRaises(SystemExit) as context:
+                        _run_cli_entrypoint()
+
+                    assert context.exception.code == 0, "The exit code should be 0"
+
+    def test_cli_with_compressed_tarball(self) -> None:
+        """Run the CLI with a tarball (.tar.gz)."""
+        with temp_dir() as source:
+            self.create_tarball(source, "gz")
+            with temp_dir() as output:
+                testargs = [
+                    "ansible-content-parser",
+                    str(Path(source.name) / "a.tar.gz"),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
