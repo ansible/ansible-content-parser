@@ -2,8 +2,10 @@ ansiblelint
 commandline
 epel
 epipe
+inodes
 lintable
 mockings
+nosonar
 pythonpath
 qualitygate
 ruamel
