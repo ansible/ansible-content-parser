@@ -279,6 +279,7 @@ ignore = [
   "PLW2901", # PLW2901: Redefined loop variable
   "RET504", # Unnecessary variable assignment before `return` statement
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
   "TRY"
 ]
 line-length = 100

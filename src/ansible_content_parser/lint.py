@@ -1,18 +1,15 @@
 """Invoke ansible-lint."""
 from __future__ import annotations
 
-import pathlib
 import sys
 
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ansiblelint.__main__ import (
-    _do_list,
     _do_transform,
     _logger,
     _perform_mockings_cleanup,
-    cache_dir_lock,
     get_app,
     initialize_logger,
     initialize_options,
@@ -22,7 +19,6 @@ from ansiblelint.__main__ import (
     path_inject,
 )
 from ansiblelint.color import (
-    console,
     console_options,
     reconfigure,
 )
@@ -33,7 +29,7 @@ if TYPE_CHECKING:
 
 
 # pylint: disable=too-many-statements,too-many-locals
-def ansiblelint_main(argv: list[str] | None = None) -> LintResult:  # noqa: C901
+def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
     # FROM HERE ---- COPIED FROM ansiblelint/__main__.py
     """Linter CLI entry point."""
     # alter PATH if needed (venv support)
@@ -67,21 +63,21 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:  # noqa: C901
     _logger.debug("Options: %s", options)
     _logger.debug("CWD: %s", Path.cwd())
 
-    if not options.offline:
-        # pylint: disable=import-outside-toplevel
-        from ansiblelint.schemas.__main__ import refresh_schemas
-
-        refresh_schemas()
+    # if not options.offline:
+    #     # pylint: disable=import-outside-toplevel
+    #     from ansiblelint.schemas.__main__ import refresh_schemas
+    #
+    #     refresh_schemas()
 
     # pylint: disable=import-outside-toplevel
     from ansiblelint.rules import RulesCollection
     from ansiblelint.runner import _get_matches
 
-    if options.list_profiles:
-        from ansiblelint.generate_docs import profiles_as_rich
-
-        console.print(profiles_as_rich())
-        return 0
+    # if options.list_profiles:
+    #     from ansiblelint.generate_docs import profiles_as_rich
+    #
+    #     console.print(profiles_as_rich())
+    #     return 0
 
     app = get_app(offline=None)  # to be sure we use the offline value from settings
     rules = RulesCollection(
@@ -91,8 +87,8 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:  # noqa: C901
         options=options,
     )
 
-    if options.list_rules or options.list_tags:
-        return _do_list(rules)
+    # if options.list_rules or options.list_tags:
+    #     return _do_list(rules)
 
     if isinstance(options.tags, str):
         options.tags = options.tags.split(",")  # pragma: no cover
@@ -127,9 +123,9 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:  # noqa: C901
     app.render_matches(result.matches)
 
     _perform_mockings_cleanup(app.options)
-    if cache_dir_lock:
-        cache_dir_lock.release()
-        pathlib.Path(cache_dir_lock.lock_file).unlink(missing_ok=True)
+    # if cache_dir_lock:
+    #     cache_dir_lock.release()
+    #     pathlib.Path(cache_dir_lock.lock_file).unlink(missing_ok=True)
     if options.mock_filters:
         _logger.warning(
             "The following filters were mocked during the run: %s",

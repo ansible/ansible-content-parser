@@ -26,7 +26,7 @@ from .lint import ansiblelint_main
 from .lintable_dict import LintableDict
 from .pipeline import run_pipeline
 from .report import generate_report
-from .safe_checks import check_tar_file_is_safe, check_zip_file_is_safe
+from .safe_checks import check_zip_file_is_safe
 
 
 _logger = logging.getLogger(__name__)
@@ -50,6 +50,9 @@ def execute_ansiblelint(
 ) -> dict[str, list[LintableDict]]:
     """Execute ansible-lint."""
     with pushd(work_dir):
+        # Clear root logger handlers as ansible-lint adds one without checking existing ones.
+        logging.getLogger().handlers.clear()
+
         result, mark_as_success = ansiblelint_main(argv)
         return {
             "files": [LintableDict(lintable) for lintable in result.files],
@@ -115,11 +118,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="output directory",
     )
     args = parser.parse_args(argv)
-
-    if not args.output:
-        parser.print_help()
-        sys.exit(1)
-
     args.output = str(Path(args.output).absolute())
 
     if args.config_file:
@@ -189,7 +187,6 @@ def prepare_source_and_output(args: argparse.Namespace) -> None:
         for ext in supported_tar_file_extensions:
             if source.endswith(ext):
                 try:
-                    check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:  # NOSONAR
                         tar.extractall(repository_path)
                         set_repo_name_and_repo_url(args, True)
