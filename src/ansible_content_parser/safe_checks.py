@@ -7,6 +7,8 @@ import zipfile
 
 threshold_entries = 10000
 threshold_size = 1000000000
+
+# Increased threshold_ratio from 10 to 100 for reduce false positives.
 threshold_ratio = 100
 
 
