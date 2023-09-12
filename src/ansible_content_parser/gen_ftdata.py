@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import TypedDict
 
 # pylint: disable=import-error
-from sage.models import (
+from sage_scan.models import (
     SageObject,
     Task,
     load_objects,
 )
-from sage.process.utils import get_tasks
+from sage_scan.process.utils import get_tasks
 
 
 _logger = logging.getLogger(__name__)

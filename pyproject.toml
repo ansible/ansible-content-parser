@@ -51,9 +51,9 @@ module = [
   "git",
   "giturlparse",
   "ruamel.yaml",
-  "sage.models",
-  "sage.pipeline",
-  "sage.process.utils",
+  "sage_scan.models",
+  "sage_scan.pipeline",
+  "sage_scan.process.utils",
   "sarif",
   "sarif.operations"
 ]

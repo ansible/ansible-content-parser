@@ -32,7 +32,7 @@ def run_pipeline(args: argparse.Namespace) -> int:
     # imported at the top-level.
 
     # pylint: disable=import-error,import-outside-toplevel
-    from sage.pipeline import (
+    from sage_scan.pipeline import (
         SagePipeline,
     )
 

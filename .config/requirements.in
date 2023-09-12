@@ -4,4 +4,4 @@ ansible-lint
 GitPython
 giturlparse
 sarif-tools
-sage@git+ssh://git@github.ibm.com/ansible-risk-insight/sage.git
+sage-scan
