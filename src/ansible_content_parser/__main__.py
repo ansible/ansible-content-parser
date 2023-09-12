@@ -26,7 +26,7 @@ from .lint import ansiblelint_main
 from .lintable_dict import LintableDict
 from .pipeline import run_pipeline
 from .report import generate_report
-from .safe_checks import check_zip_file_is_safe
+from .safe_checks import check_tar_file_is_safe, check_zip_file_is_safe
 
 
 _logger = logging.getLogger(__name__)
@@ -187,6 +187,7 @@ def prepare_source_and_output(args: argparse.Namespace) -> None:
         for ext in supported_tar_file_extensions:
             if source.endswith(ext):
                 try:
+                    check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:  # NOSONAR
                         tar.extractall(repository_path)
                         set_repo_name_and_repo_url(args, True)

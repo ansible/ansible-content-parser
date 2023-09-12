@@ -149,7 +149,7 @@ def get_module_summary(sage_objects: str) -> str:
     with Path(sage_objects).open(encoding="utf-8") as f:
         for line in f:
             o = json.loads(line)
-            if o.get("py/object") == "sage.models.Task":
+            if o.get("py/object") == "sage_scan.models.Task":
                 modules.append(get_module_name(o))
 
     counts = Counter(modules)
