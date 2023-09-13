@@ -84,7 +84,7 @@ def check_zip_file_is_safe(source: str) -> None:
             total_entry_archive += 1
 
             total_size_archive = total_size_archive + len(data)
-            ratio = len(data) / info.compress_size
+            ratio = (len(data) / info.compress_size) if info.compress_size != 0 else 1
             if ratio > threshold_ratio:
                 msg = "ratio between compressed and uncompressed data is highly suspicious, looks like a Zip Bomb Attack"
                 raise RuntimeError(
