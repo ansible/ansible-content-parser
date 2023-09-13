@@ -13,12 +13,11 @@ from .report import add_module_summary
 _logger = logging.getLogger(__name__)
 
 
-def run_pipeline(args: argparse.Namespace) -> int:
+def run_pipeline(args: argparse.Namespace, repository_path: Path) -> int:
     """Execute pipelines for generating training data (ftdata.json)."""
     out_path = Path(args.output).absolute()
     metadata_path = out_path / "metadata"
 
-    repository_path = out_path / "repository"
     report_path = out_path / "report.txt"
     ftdata_path = out_path / "ftdata.json"
     lint_result_path = metadata_path / "lint-result.json"

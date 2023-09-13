@@ -152,7 +152,7 @@ def set_repo_name_and_repo_url(args: argparse.Namespace, is_file: bool) -> None:
         )
 
 
-def prepare_source_and_output(args: argparse.Namespace) -> None:
+def prepare_source_and_output(args: argparse.Namespace) -> Path:
     """Prepare source (archive/url/directory) and output directory."""
     source, output = args.source, args.output
 
@@ -167,22 +167,19 @@ def prepare_source_and_output(args: argparse.Namespace) -> None:
     ]
 
     out_path = setup_output(output)
-
-    # Make sure a subdirectory can be created in the output directory
     repository_path = out_path / "repository"
-    repository_path.mkdir()
-
     metadata_path = out_path / "metadata"
-    metadata_path.mkdir()
 
     # Check if the specified source is a supported archive.
     if source.endswith(".zip"):
         try:
             check_zip_file_is_safe(source)
             with zipfile.ZipFile(source) as zip_file:
+                repository_path.mkdir()
                 zip_file.extractall(repository_path)
+                metadata_path.mkdir()
                 set_repo_name_and_repo_url(args, True)
-                return
+                return get_project_root(repository_path)
         except Exception:
             _logger.exception(
                 "An exception thrown in extracting files from %s.",
@@ -195,9 +192,11 @@ def prepare_source_and_output(args: argparse.Namespace) -> None:
                 try:
                     check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:  # NOSONAR
+                        repository_path.mkdir()
                         tar.extractall(repository_path)
+                        metadata_path.mkdir()
                         set_repo_name_and_repo_url(args, True)
-                    return
+                    return get_project_root(repository_path)
                 except Exception:
                     _logger.exception(
                         "An exception thrown in extracting files from %s.",
@@ -208,9 +207,11 @@ def prepare_source_and_output(args: argparse.Namespace) -> None:
     # Check if the specified source is a URL
     if giturlparse.validate(source):
         try:
+            repository_path.mkdir()
             Repo.clone_from(source, repository_path)
+            metadata_path.mkdir()
             set_repo_name_and_repo_url(args, False)
-            return
+            return repository_path
         except Exception:
             _logger.exception(
                 "An exception thrown in cloning git repository %s.",
@@ -220,12 +221,15 @@ def prepare_source_and_output(args: argparse.Namespace) -> None:
 
     # Assume the source is a local directory
     if Path(source).is_dir():
-        repository_path.rmdir()
+        # As shutil.copytree creates repository_path, we do not need to call repository_path,mkdir()
         shutil.copytree(source, repository_path)
+        metadata_path.mkdir()
         set_repo_name_and_repo_url(args, True)
     else:
         _logger.error("%s is not a directory.", source)
         sys.exit(1)
+
+    return repository_path
 
 
 def setup_output(output: str) -> Path:
@@ -244,6 +248,16 @@ def setup_output(output: str) -> Path:
     return out_path
 
 
+def get_project_root(repository_path: Path) -> Path:
+    """Get the project root directory from the given path."""
+    files = os.listdir(repository_path)
+    # If the given path contains a single directory at root assume it as the project root directory.
+    if len(files) == 1:
+        path = Path(repository_path / files[0])
+        return path if path.is_dir() else repository_path
+    return repository_path
+
+
 def main() -> None:
     """Invoke the main entrypoint with current CLI args.
 
@@ -252,10 +266,9 @@ def main() -> None:
     return_code = 0
     try:
         args = parse_args(sys.argv[1:])
-        prepare_source_and_output(args)
+        repository_path = prepare_source_and_output(args)
 
         out_path = Path(args.output)
-        repository_path = out_path / "repository"
         metadata_path = out_path / "metadata"
 
         sarif_file = str(metadata_path / "sarif.json")
@@ -285,7 +298,7 @@ def main() -> None:
             _logger.exception("An exception was thrown while running ansible-lint.")
             sys.exit(1)
 
-        return_code = run_pipeline(args)
+        return_code = run_pipeline(args, repository_path)
 
     except OSError as exc:
         # NOTE: Only "broken pipe" is acceptable to ignore

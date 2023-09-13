@@ -16,6 +16,7 @@ from unittest.mock import MagicMock, patch
 import git
 
 from ansible_content_parser.__main__ import (
+    get_project_root,
     main,
     update_argv,
 )
@@ -152,16 +153,6 @@ class TestMain(TestCase):
                 testargs = [
                     "ansible-content-parser",
                     "-v",
-                    "--config-file",
-                    source.name + "/" + dot_ansible_lint_name,
-                    "--source-license",
-                    "Apache",
-                    "--source-description",
-                    "This is a repo for test",
-                    "--repo-name",
-                    "test_repo",
-                    "--repo-url",
-                    "https://repo.example.com/test_repo",
                     source.name + "/",  # intentionally add "/" to the end
                     output.name,
                 ]
@@ -279,6 +270,16 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
+                    "--config-file",
+                    source.name + "/" + dot_ansible_lint_name,
+                    "--source-license",
+                    "Apache",
+                    "--source-description",
+                    "This is a repo for test",
+                    "--repo-name",
+                    "test_repo",
+                    "--repo-url",
+                    "https://repo.example.com/test_repo",
                     str(Path(source.name) / f"{repo_name}.tar.gz"),
                     output.name,
                 ]
@@ -287,6 +288,14 @@ class TestMain(TestCase):
                         main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
+
+                with (Path(output.name) / "ftdata.json").open("r") as f:
+                    for line in f:
+                        o = json.loads(line)
+                        assert o["data_source_description"] == "This is a repo for test"
+                        assert o["repo_name"] == "test_repo"
+                        assert o["repo_url"] == "https://repo.example.com/test_repo"
+                        assert o["license"] == "Apache"
 
     def test_cli_with_invalid_tarball(self) -> None:
         """Run the CLI with an invalid tarball."""
@@ -454,3 +463,28 @@ class TestMain(TestCase):
         assert "-v" not in argv
         assert "--config-file" not in argv
         assert "--profile" not in argv
+
+    def test_get_project_root(self) -> None:
+        with temp_dir() as output:
+            output_path = Path(output.name)
+            repository_path = output_path / "repository"
+            repository_path.mkdir()
+
+            # When there is no file/directory in repository_path,
+            # get_project_root return repository_path
+            path = get_project_root(repository_path)
+            assert path.name == repository_path.name
+
+            # When there is one single directory in repository_path,
+            # get_project_root return the directory path
+            project_path = repository_path / "project"
+            project_path.mkdir()
+            path = get_project_root(repository_path)
+            assert path.name == project_path.name
+
+            # When there are more than one directories in repository_path,
+            # get_project_root return repository_path
+            project_path2 = repository_path / "project2"
+            project_path2.mkdir()
+            path = get_project_root(repository_path)
+            assert path.name == repository_path.name
