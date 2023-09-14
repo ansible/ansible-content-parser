@@ -54,11 +54,11 @@ class TestSafeChecks(TestCase):
 
             assert (
                 context.exception.args[0]
-                == "too much entries in this archive, can lead to inodes exhaustion of the system"
+                == "too many entries in this archive, can lead to inodes exhaustion of the system"
             )
 
     def test_with_zip_too_big(self) -> None:
-        """Test with a zip file that contains too many files."""
+        """Test with a zip file that is too big."""
         with temp_dir() as source:
             os.chdir(source.name)
             with Path("0.txt").open("w", encoding="utf-8") as f:

@@ -17,7 +17,7 @@ def _check_total_size_and_entries(
     total_size_archive: int,
 ) -> None:
     if total_entry_archive > threshold_entries:
-        msg = "too much entries in this archive, can lead to inodes exhaustion of the system"
+        msg = "too many entries in this archive, can lead to inodes exhaustion of the system"
         raise RuntimeError(
             msg,
         )
