@@ -1,4 +1,5 @@
 """Test __main__.py."""
+import argparse
 import contextlib
 import json
 import os
@@ -14,7 +15,10 @@ from unittest.mock import MagicMock, patch
 
 import git
 
-from ansible_content_parser.__main__ import main  # pylint: disable=import-error
+from ansible_content_parser.__main__ import (
+    main,
+    update_argv,
+)
 
 
 sample_playbook = """---
@@ -396,3 +400,37 @@ class TestMain(TestCase):
                     main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
+
+    def test_update_argv(self) -> None:
+        """Test __main__.update_argv()."""
+        input_data = {
+            "skip_transform": True,
+            "verbose": True,
+            "config_file": "config.file",
+            "profile": "basic",
+        }
+        args = argparse.Namespace(**input_data)
+        argv = ["__DUMMY__"]
+        update_argv(argv, args)
+
+        assert "--write" not in argv
+        assert "-v" in argv
+        assert "--config-file" in argv
+        assert "config.file" in argv
+        assert "--profile" in argv
+        assert "basic" in argv
+
+        input_data = {
+            "skip_transform": False,
+            "verbose": False,
+            "config_file": None,
+            "profile": None,
+        }
+        args = argparse.Namespace(**input_data)
+        argv = ["__DUMMY__"]
+        update_argv(argv, args)
+
+        assert "--write" in argv
+        assert "-v" not in argv
+        assert "--config-file" not in argv
+        assert "--profile" not in argv

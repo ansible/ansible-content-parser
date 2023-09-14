@@ -77,9 +77,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Specify which rules profile to be used for ansible-lint",
     )
     parser.add_argument(
+        "--skip-transform",
+        action="store_true",
+        help="Skip the transform step of ansible-lint.  If this option is not specified, ansible-lint is executed "
+        "with the --write option and files are transformed according to the rules specified.",
+    )
+    parser.add_argument(
         "--skip-ansible-lint",
         action="store_true",
-        help="Skip execution of ansible-lint.",
+        help="Skip the execution of ansible-lint.",
     )
     parser.add_argument(
         "-v",
@@ -253,15 +259,8 @@ def main() -> None:
         metadata_path = out_path / "metadata"
 
         sarif_file = str(metadata_path / "sarif.json")
-        argv = ["__DUMMY__", "--sarif-file", sarif_file, "--write"]
-        if args.verbose:
-            argv.append("-v")
-        if args.config_file:
-            argv.append("--config-file")
-            argv.append(args.config_file)
-        if args.profile:
-            argv.append("--profile")
-            argv.append(args.profile)
+        argv = ["__DUMMY__", "--sarif-file", sarif_file]
+        update_argv(argv, args)
 
         try:
             # Execute ansible-lint and create metadata files.
@@ -299,6 +298,20 @@ def main() -> None:
         raise
 
     sys.exit(return_code)
+
+
+def update_argv(argv: list[str], args: argparse.Namespace) -> None:
+    """Update arguments to ansible-lint based on arguments given to ansible-content-parser."""
+    if not args.skip_transform:
+        argv.append("--write")
+    if args.verbose:
+        argv.append("-v")
+    if args.config_file:
+        argv.append("--config-file")
+        argv.append(args.config_file)
+    if args.profile:
+        argv.append("--profile")
+        argv.append(args.profile)
 
 
 if __name__ == "__main__":

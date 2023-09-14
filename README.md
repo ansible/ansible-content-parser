@@ -47,7 +47,9 @@ options:
                         lint', '.config/ansible-lint.yml', or '.config/ansible-lint.yaml' in the source repository.
   --profile {min,basic,moderate,safety,shared,production}
                         Specify which rules profile to be used for ansible-lint
-  --skip-ansible-lint   Skip execution of ansible-lint.
+  --skip-transform      Skip the transform step of ansible-lint. If this option is not specified, ansible-lint is
+                        executed with the --write option and files are transformed according to the rules specified.
+  --skip-ansible-lint   Skip the execution of ansible-lint.
   -v, --verbose         Explain what is being done
   --source-license SOURCE_LICENSE
                         Specify the license that will be included in the training dataset.
