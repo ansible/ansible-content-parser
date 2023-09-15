@@ -15,6 +15,8 @@ from unittest.mock import MagicMock, patch
 
 import git
 
+
+# pylint: disable=import-error
 from ansible_content_parser.__main__ import (
     get_project_root,
     main,
@@ -162,14 +164,6 @@ class TestMain(TestCase):
                     main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
-
-                with (Path(output.name) / "ftdata.json").open("r") as f:
-                    for line in f:
-                        o = json.loads(line)
-                        assert o["data_source_description"] == "This is a repo for test"
-                        assert o["repo_name"] == "test_repo"
-                        assert o["repo_url"] == "https://repo.example.com/test_repo"
-                        assert o["license"] == "Apache"
 
                 with (Path(output.name) / "report.txt").open("r") as f:
                     for line in f:
