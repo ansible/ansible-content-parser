@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 _label_count = "Count"
 _label_file_type = "File Type"
 _label_file_path = "File Path"
-_label_module_name = "Fully Qualified Module Name"
+_label_module_name = "Module Name"
 _label_total = "TOTAL"
 
 _report_txt = "report.txt"
@@ -124,19 +124,7 @@ class _SageObject(TypedDict):
 
 def get_module_name(o: _SageObject) -> str:
     """Find a module name in a dictionary that represents an Ansible task."""
-    module_name = ""
-    module_info = o.get("module_info", {})
-    if module_info and isinstance(module_info, dict):
-        module_name = module_info.get("fqcn", "")
-    if not module_name:
-        annotations = o.get("annotations", {})
-        if annotations:
-            if "correct_fqcn" in annotations:
-                module_name = annotations.get("correct_fqcn", "")
-            elif "module.correct_fqcn" in annotations:
-                module_name = annotations.get("module.correct_fqcn", "")
-    if not module_name:
-        module_name = o.get("module", "")
+    module_name = o.get("module", "")
     if not module_name:
         _logger.error("No module name was found in a task: %s", json.dumps(o))
         module_name = "(not found)"
@@ -156,7 +144,7 @@ def get_module_summary(sage_objects: str) -> str:
     entries = []
     max_module_len = len(_label_module_name)
     total = 0
-    for module in sorted(counts, key=lambda x: counts[x], reverse=True):
+    for module in sorted(counts, key=lambda x: (-counts[x], x)):
         count = str(counts[module])
         total += counts[module]
         entries.append([module, count])

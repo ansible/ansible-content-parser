@@ -180,6 +180,26 @@ class TestMain(TestCase):
                         assert o["repo_url"] == "https://repo.example.com/test_repo"
                         assert o["license"] == "Apache"
 
+                with (Path(output.name) / "report.txt").open("r") as f:
+                    for line in f:
+                        if line == "Module Name     Count\n":
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "service             2\n"
+                            line = f.readline()
+                            assert line == "yum                 2\n"
+                            line = f.readline()
+                            assert line == "firewalld           1\n"
+                            line = f.readline()
+                            assert line == "meta                1\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "TOTAL               6\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+
     def test_cli_with_non_archive_file(self) -> None:
         """Run the CLI with specifying a non archive file as input."""
         with temp_dir() as source:
