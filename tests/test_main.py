@@ -82,6 +82,46 @@ repository: "https://www.github.com/my_org/my_collection"
 description: Sample description
 """
 
+# From a sample file in ansible-lint repo
+sample_playbook2 = """---
+- name: One
+  hosts: all
+  tasks:
+    - name: Test when with jinja2 # noqa: jinja[spacing]
+      ansible.builtin.debug:
+        msg: text
+      when: "{{ false }}"
+
+- name: Two
+  hosts: all
+  roles:
+    - role: hello
+      when: "{{ '1' = '1' }}"
+
+- name: Three
+  hosts: all
+  roles:
+    - role: hello
+      when:
+        - "{{ '1' = '1' }}"
+"""
+
+# An example with a deprecated module (ec2)
+sample_playbook3 = """---
+- name: EC2 Sample
+  hosts: all
+  tasks:
+    - ec2:
+        key_name: mykey
+        instance_type: t2.micro
+        image: ami-123456
+        wait: yes
+        group: server
+        count: 3
+        vpc_subnet_id: subnet-29e63245
+        assign_public_ip: yes
+"""
+
 dot_ansible_lint = """---
 # .ansible-lint
 profile: basic
@@ -89,6 +129,8 @@ verbosity: 1
 """
 
 sample_playbook_name = "playbook.yml"
+sample_playbook2_name = "transform-no-jinja-when.yml"
+sample_playbook3_name = "ec2-sample.yml"
 galaxy_yml_name = "galaxy.yml"
 dot_ansible_lint_name = ".ansible-lint"
 repo_name = "repo_name"
@@ -108,8 +150,8 @@ def temp_dir() -> Generator[TemporaryDirectory[str], None, None]:
 class TestMain(TestCase):
     """The TestMain class."""
 
-    def create_repo(self, source: TemporaryDirectory[str]) -> None:
-        """Create a playbook YAML file."""
+    def _create_repo(self, source: TemporaryDirectory[str]) -> None:
+        """Create a repository."""
         with (Path(source.name) / sample_playbook_name).open("w") as f:
             f.write(sample_playbook)
         with (Path(source.name) / galaxy_yml_name).open("w") as f:
@@ -117,13 +159,23 @@ class TestMain(TestCase):
         with (Path(source.name) / dot_ansible_lint_name).open("w") as f:
             f.write(dot_ansible_lint)
 
-    def create_tarball(
+    def _add_second_playbook(self, source: TemporaryDirectory[str]) -> None:
+        """Add the second playbook YAML file."""
+        with (Path(source.name) / sample_playbook2_name).open("w") as f:
+            f.write(sample_playbook2)
+
+    def _add_third_playbook(self, source: TemporaryDirectory[str]) -> None:
+        """Add the second playbook YAML file."""
+        with (Path(source.name) / sample_playbook3_name).open("w") as f:
+            f.write(sample_playbook3)
+
+    def _create_tarball(
         self,
         source: TemporaryDirectory[str],
         compression: str = "",
     ) -> None:
         """Create a tarball."""
-        self.create_repo(source)
+        self._create_repo(source)
         os.chdir(source.name)
         filename = (
             f"{repo_name}.tar.{compression}" if compression else f"{repo_name}.tar"
@@ -134,9 +186,9 @@ class TestMain(TestCase):
             tar.add(galaxy_yml_name)
             tar.add(dot_ansible_lint_name)
 
-    def create_zip_file(self, source: TemporaryDirectory[str]) -> None:
+    def _create_zip_file(self, source: TemporaryDirectory[str]) -> None:
         """Create a ZIP file."""
-        self.create_repo(source)
+        self._create_repo(source)
         os.chdir(source.name)
         with zipfile.ZipFile(
             f"{repo_name}.zip",
@@ -150,7 +202,9 @@ class TestMain(TestCase):
     def test_cli_with_local_directory(self) -> None:
         """Run the CLI with a local directory."""
         with temp_dir() as source:
-            self.create_repo(source)
+            self._create_repo(source)
+            self._add_second_playbook(source)
+            self._add_third_playbook(source)
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
@@ -185,10 +239,31 @@ class TestMain(TestCase):
                             line = f.readline()
                             assert line == "---------------------\n"
 
+    def test_cli_with_local_directory_with_no_exclude(self) -> None:
+        """Run the CLI with a local directory."""
+        with temp_dir() as source:
+            self._create_repo(source)
+            self._add_second_playbook(source)
+            self._add_third_playbook(source)
+            with temp_dir() as output:
+                testargs = [
+                    "ansible-content-parser",
+                    "-v",
+                    "--no-exclude",
+                    source.name + "/",  # intentionally add "/" to the end
+                    output.name,
+                ]
+                with patch.object(sys, "argv", testargs), self.assertRaises(
+                    SystemExit,
+                ) as context:
+                    main()
+
+                    assert context.exception.code == 1, "The exit code should be 1"
+
     def test_cli_with_non_archive_file(self) -> None:
         """Run the CLI with specifying a non archive file as input."""
         with temp_dir() as source:
-            self.create_repo(source)
+            self._create_repo(source)
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
@@ -242,7 +317,7 @@ class TestMain(TestCase):
     def test_cli_with_tarball(self) -> None:
         """Run the CLI with a tarball."""
         with temp_dir() as source:
-            self.create_tarball(source)
+            self._create_tarball(source)
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
@@ -260,7 +335,7 @@ class TestMain(TestCase):
     def test_cli_with_compressed_tarball(self) -> None:
         """Run the CLI with a tarball (.tar.gz)."""
         with temp_dir() as source:
-            self.create_tarball(source, "gz")
+            self._create_tarball(source, "gz")
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
@@ -294,7 +369,7 @@ class TestMain(TestCase):
     def test_cli_with_invalid_tarball(self) -> None:
         """Run the CLI with an invalid tarball."""
         with temp_dir() as source:
-            self.create_zip_file(source)
+            self._create_zip_file(source)
             (Path(source.name) / f"{repo_name}.zip").rename(
                 str(Path(source.name) / f"{repo_name}.tar"),
             )
@@ -327,7 +402,7 @@ class TestMain(TestCase):
     def test_cli_with_zip_file(self) -> None:
         """Run the CLI with a zip file."""
         with temp_dir() as source:
-            self.create_zip_file(source)
+            self._create_zip_file(source)
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
@@ -343,7 +418,7 @@ class TestMain(TestCase):
     def test_cli_with_invalid_zip_file(self) -> None:
         """Run the CLI with an invalid zip file."""
         with temp_dir() as source:
-            self.create_tarball(source, "gz")
+            self._create_tarball(source, "gz")
             (Path(source.name) / f"{repo_name}.tar.gz").rename(
                 str(Path(source.name) / f"{repo_name}.zip"),
             )

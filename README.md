@@ -30,9 +30,9 @@ with a few optional parameters.
 ```commandline
 $ ansible-content-parser --help
 usage: ansible-content-parser [-h] [--config-file CONFIG_FILE]
-                              [--profile {min,basic,moderate,safety,shared,production}] [--skip-ansible-lint] [-v]
-                              [--source-license SOURCE_LICENSE] [--source-description SOURCE_DESCRIPTION]
-                              [--repo-name REPO_NAME] [--repo-url REPO_URL]
+                              [--profile {min,basic,moderate,safety,shared,production}] [--skip-transform]
+                              [--skip-ansible-lint] [--no-exclude] [-v] [--source-license SOURCE_LICENSE]
+                              [--source-description SOURCE_DESCRIPTION] [--repo-name REPO_NAME] [--repo-url REPO_URL]
                               source output
 
 Parse Ansible files in the given repository by running ansible-lint and generate a training dataset for Ansible
@@ -52,6 +52,8 @@ options:
   --skip-transform      Skip the transform step of ansible-lint. If this option is not specified, ansible-lint is
                         executed with the --write option and files are transformed according to the rules specified.
   --skip-ansible-lint   Skip the execution of ansible-lint.
+  --no-exclude          Do not rerun ansible-lint with excluding files that caused syntax check errors. If one or more
+                        syntax check errors were found, execution fails without generating the training dataset.
   -v, --verbose         Explain what is being done
   --source-license SOURCE_LICENSE
                         Specify the license that will be included in the training dataset.
@@ -140,7 +142,7 @@ in the Content Parser run.
 `lint-result.json` is created in the `metadata` subdirectory
 as the result of the execution
 of `ansible-content-parser`. The file contains a dictionary, which
-has one key/value pairs:
+has two key/value pairs:
 
 1. `files` This is for the list of files that were found
    in the execution. The format of each file entry is explained below.
@@ -176,6 +178,15 @@ Following shows an example of a file entry:
   "updated": false
 }
 ```
+
+2.  `excluded` This is for the list of file paths, which were excluded in the second `ansible-lint`
+    execution because syntax check errors were found in those files on the first execution.
+    The files included in the list will not appear in the entries associated with the `files` key.
+
+        - **Note:** If `ansible-content-parser` is executed with the `--no-exclude` option, the second execution
+
+    does not occur even if syntax check errors were found on the first execution and
+    the training dataset will not be created.
 
 #### sarif.json
 
