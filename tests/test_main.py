@@ -433,7 +433,7 @@ class TestMain(TestCase):
         argv = ["__DUMMY__"]
         update_argv(argv, args)
 
-        assert "--write" not in argv
+        assert "--write=all" not in argv
         assert "-v" in argv
         assert "--config-file" in argv
         assert "config.file" in argv
@@ -450,7 +450,7 @@ class TestMain(TestCase):
         argv = ["__DUMMY__"]
         update_argv(argv, args)
 
-        assert "--write" in argv
+        assert "--write=all" in argv
         assert "-v" not in argv
         assert "--config-file" not in argv
         assert "--profile" not in argv

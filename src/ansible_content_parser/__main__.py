@@ -303,7 +303,7 @@ def main() -> None:
 def update_argv(argv: list[str], args: argparse.Namespace) -> None:
     """Update arguments to ansible-lint based on arguments given to ansible-content-parser."""
     if not args.skip_transform:
-        argv.append("--write")
+        argv.append("--write=all")
     if args.verbose:
         argv.append("-v")
     if args.config_file:
