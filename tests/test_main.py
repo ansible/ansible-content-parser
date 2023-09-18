@@ -1,5 +1,7 @@
 """Test __main__.py."""
+import argparse
 import contextlib
+import json
 import os
 import sys
 import tarfile
@@ -13,7 +15,80 @@ from unittest.mock import MagicMock, patch
 
 import git
 
-from ansible_content_parser.__main__ import _run_cli_entrypoint
+from ansible_content_parser.__main__ import (
+    main,
+    update_argv,
+)
+
+
+sample_playbook = """---
+- name: Apache server installed
+  hosts: web
+
+  post_tasks:
+  # Edge case: a (post) task without name
+  - meta: clear_facts
+
+  tasks:
+  - name: latest Apache version installed
+    yum:
+      name: httpd
+      state: latest
+
+  - name: latest firewalld version installed
+    yum:
+      name: firewalld
+      state: latest
+
+  - name: firewalld enabled and running
+    service:
+      name: firewalld
+      enabled: true
+      state: started
+
+  - name: firewalld permits http service
+    firewalld:
+      service: http
+      permanent: true
+      state: enabled
+      immediate: yes
+
+  # Edge case: a task with a two-line name
+  - name: "Apache enabled and \
+running"
+    service:
+      name: httpd
+      enabled: true
+      state: started
+"""
+
+galaxy_yml = """namespace: "namespace_name"
+name: "collection_name"
+version: "1.0.12"
+readme: "README.md"
+authors:
+    - "Author1"
+    - "Author2 (https://author2.example.com)"
+    - "Author3 <author3@example.com>"
+license:
+    - "MIT"
+tags:
+    - demo
+    - collection
+repository: "https://www.github.com/my_org/my_collection"
+description: Sample description
+"""
+
+dot_ansible_lint = """---
+# .ansible-lint
+profile: basic
+verbosity: 1
+"""
+
+sample_playbook_name = "playbook.yml"
+galaxy_yml_name = "galaxy.yml"
+dot_ansible_lint_name = ".ansible-lint"
+repo_name = "repo_name"
 
 
 @contextlib.contextmanager
@@ -30,10 +105,14 @@ def temp_dir() -> Generator[TemporaryDirectory[str], None, None]:
 class TestMain(TestCase):
     """The TestMain class."""
 
-    def create_playbook(self, source: TemporaryDirectory[str]) -> None:
+    def create_repo(self, source: TemporaryDirectory[str]) -> None:
         """Create a playbook YAML file."""
-        with (Path(source.name) / "a.yml").open("w") as f:
-            f.write("---\nname: test\nhosts: all\n")
+        with (Path(source.name) / sample_playbook_name).open("w") as f:
+            f.write(sample_playbook)
+        with (Path(source.name) / galaxy_yml_name).open("w") as f:
+            f.write(galaxy_yml)
+        with (Path(source.name) / dot_ansible_lint_name).open("w") as f:
+            f.write(dot_ansible_lint)
 
     def create_tarball(
         self,
@@ -41,46 +120,99 @@ class TestMain(TestCase):
         compression: str = "",
     ) -> None:
         """Create a tarball."""
-        self.create_playbook(source)
+        self.create_repo(source)
         os.chdir(source.name)
-        filename = f"a.tar.{compression}" if compression else "a.tar"
+        filename = (
+            f"{repo_name}.tar.{compression}" if compression else f"{repo_name}.tar"
+        )
         mode = f"w:{compression}" if compression else "w"
         with tarfile.open(filename, mode) as tar:
-            tar.add("a.yml")
+            tar.add(sample_playbook_name)
+            tar.add(galaxy_yml_name)
+            tar.add(dot_ansible_lint_name)
 
     def create_zip_file(self, source: TemporaryDirectory[str]) -> None:
         """Create a ZIP file."""
-        self.create_playbook(source)
+        self.create_repo(source)
         os.chdir(source.name)
-        with zipfile.ZipFile("a.zip", "w") as zip_file:
-            zip_file.write("a.yml")
+        with zipfile.ZipFile(
+            f"{repo_name}.zip",
+            "w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as zip_file:
+            zip_file.write(sample_playbook_name)
+            zip_file.write(galaxy_yml_name)
+            zip_file.write(dot_ansible_lint_name)
 
     def test_cli_with_local_directory(self) -> None:
         """Run the CLI with a local directory."""
         with temp_dir() as source:
-            self.create_playbook(source)
+            self.create_repo(source)
             with temp_dir() as output:
-                testargs = ["ansible-content-parser", source.name, output.name]
+                testargs = [
+                    "ansible-content-parser",
+                    "-v",
+                    "--config-file",
+                    source.name + "/" + dot_ansible_lint_name,
+                    "--source-license",
+                    "Apache",
+                    "--source-description",
+                    "This is a repo for test",
+                    "--repo-name",
+                    "test_repo",
+                    "--repo-url",
+                    "https://repo.example.com/test_repo",
+                    source.name + "/",  # intentionally add "/" to the end
+                    output.name,
+                ]
                 with patch.object(sys, "argv", testargs), self.assertRaises(
                     SystemExit,
                 ) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
+
+                with (Path(output.name) / "ftdata.json").open("r") as f:
+                    for line in f:
+                        o = json.loads(line)
+                        assert o["data_source_description"] == "This is a repo for test"
+                        assert o["repo_name"] == "test_repo"
+                        assert o["repo_url"] == "https://repo.example.com/test_repo"
+                        assert o["license"] == "Apache"
+
+                with (Path(output.name) / "report.txt").open("r") as f:
+                    for line in f:
+                        if line == "Module Name     Count\n":
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "service             2\n"
+                            line = f.readline()
+                            assert line == "yum                 2\n"
+                            line = f.readline()
+                            assert line == "firewalld           1\n"
+                            line = f.readline()
+                            assert line == "meta                1\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "TOTAL               6\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
 
     def test_cli_with_non_archive_file(self) -> None:
         """Run the CLI with specifying a non archive file as input."""
         with temp_dir() as source:
-            self.create_playbook(source)
+            self.create_repo(source)
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    (Path(source.name) / "a.yml").as_posix(),
+                    (Path(source.name) / sample_playbook_name).as_posix(),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 1, "The exit code should be 1"
 
@@ -94,7 +226,7 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -108,9 +240,19 @@ class TestMain(TestCase):
             testargs = ["ansible-content-parser", source.name, output.name]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
+
+    def test_cli_with_no_output_specified(self) -> None:
+        """Run the CLI without specifying output."""
+        with temp_dir() as source:
+            testargs = ["ansible-content-parser", source.name]
+            with patch.object(sys, "argv", testargs):
+                with self.assertRaises(SystemExit) as context:
+                    main()
+
+                assert context.exception.code == 2, "The exit code should be 2"
 
     def test_cli_with_tarball(self) -> None:
         """Run the CLI with a tarball."""
@@ -119,12 +261,14 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    (Path(source.name) / "a.tar").as_posix(),
+                    "--profile",
+                    "min",
+                    (Path(source.name) / f"{repo_name}.tar").as_posix(),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
 
@@ -135,26 +279,45 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    str(Path(source.name) / "a.tar.gz"),
+                    str(Path(source.name) / f"{repo_name}.tar.gz"),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
+
+    def test_cli_with_invalid_tarball(self) -> None:
+        """Run the CLI with an invalid tarball."""
+        with temp_dir() as source:
+            self.create_zip_file(source)
+            (Path(source.name) / f"{repo_name}.zip").rename(
+                str(Path(source.name) / f"{repo_name}.tar"),
+            )
+            with temp_dir() as output:
+                testargs = [
+                    "ansible-content-parser",
+                    str(Path(source.name) / f"{repo_name}.tar"),
+                    output.name,
+                ]
+                with patch.object(sys, "argv", testargs):
+                    with self.assertRaises(SystemExit) as context:
+                        main()
+
+                    assert context.exception.code == 1, "The exit code should be 1"
 
     def test_cli_with_non_existent_tarball(self) -> None:
         """Run the CLI with a non-existent tarball."""
         with temp_dir() as source, temp_dir() as output:
             testargs = [
                 "ansible-content-parser",
-                (Path(source.name) / "a.tar").as_posix(),
+                (Path(source.name) / f"{repo_name}.tar").as_posix(),
                 output.name,
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -165,26 +328,45 @@ class TestMain(TestCase):
             with temp_dir() as output:
                 testargs = [
                     "ansible-content-parser",
-                    (Path(source.name) / "a.zip").as_posix(),
+                    (Path(source.name) / f"{repo_name}.zip").as_posix(),
                     output.name,
                 ]
                 with patch.object(sys, "argv", testargs):
                     with self.assertRaises(SystemExit) as context:
-                        _run_cli_entrypoint()
+                        main()
 
                     assert context.exception.code == 0, "The exit code should be 0"
+
+    def test_cli_with_invalid_zip_file(self) -> None:
+        """Run the CLI with an invalid zip file."""
+        with temp_dir() as source:
+            self.create_tarball(source, "gz")
+            (Path(source.name) / f"{repo_name}.tar.gz").rename(
+                str(Path(source.name) / f"{repo_name}.zip"),
+            )
+            with temp_dir() as output:
+                testargs = [
+                    "ansible-content-parser",
+                    str(Path(source.name) / f"{repo_name}.zip"),
+                    output.name,
+                ]
+                with patch.object(sys, "argv", testargs):
+                    with self.assertRaises(SystemExit) as context:
+                        main()
+
+                    assert context.exception.code == 1, "The exit code should be 1"
 
     def test_cli_with_non_existent_zip_file(self) -> None:
         """Run the CLI with a non-existent zip file."""
         with temp_dir() as source, temp_dir() as output:
             testargs = [
                 "ansible-content-parser",
-                (Path(source.name) / "a.zip").as_posix(),
+                (Path(source.name) / f"{repo_name}.zip").as_posix(),
                 output.name,
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
 
@@ -200,7 +382,7 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
 
@@ -216,7 +398,7 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
 
@@ -235,6 +417,40 @@ class TestMain(TestCase):
             ]
             with patch.object(sys, "argv", testargs):
                 with self.assertRaises(SystemExit) as context:
-                    _run_cli_entrypoint()
+                    main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
+
+    def test_update_argv(self) -> None:
+        """Test __main__.update_argv()."""
+        input_data = {
+            "skip_transform": True,
+            "verbose": True,
+            "config_file": "config.file",
+            "profile": "basic",
+        }
+        args = argparse.Namespace(**input_data)
+        argv = ["__DUMMY__"]
+        update_argv(argv, args)
+
+        assert "--write=all" not in argv
+        assert "-v" in argv
+        assert "--config-file" in argv
+        assert "config.file" in argv
+        assert "--profile" in argv
+        assert "basic" in argv
+
+        input_data = {
+            "skip_transform": False,
+            "verbose": False,
+            "config_file": None,
+            "profile": None,
+        }
+        args = argparse.Namespace(**input_data)
+        argv = ["__DUMMY__"]
+        update_argv(argv, args)
+
+        assert "--write=all" in argv
+        assert "-v" not in argv
+        assert "--config-file" not in argv
+        assert "--profile" not in argv

@@ -31,7 +31,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [project.scripts]
-ansible-content-parser = "ansible_content_parser.__main__:_run_cli_entrypoint"
+ansible-content-parser = "ansible_content_parser.__main__:main"
 
 [project.urls]
 changelog = "https://github.com/ansible/ansible-content-parser/releases"
@@ -49,7 +49,13 @@ ignore_missing_imports = true
 module = [
   "ansiblelint.*",
   "git",
-  "ruamel.yaml"
+  "giturlparse",
+  "ruamel.yaml",
+  "sage_scan.models",
+  "sage_scan.pipeline",
+  "sage_scan.process.utils",
+  "sarif",
+  "sarif.operations"
 ]
 
 [tool.pydoclint]
@@ -160,6 +166,7 @@ disable = [
   "R0133", # comparison-of-constants / ruff PLR0133
   "R0205", # useless-object-inheritance / ruff UP004
   "R0206", # property-with-parameters / ruff PLR0206
+  "R0902", # too-many-instance-attributes
   "R0911", # too-many-return-statements / ruff PLR0911
   "R0912", # too-many-branches / ruff PLR0912
   "R0913", # too-many-arguments / ruff PLR0913
@@ -272,6 +279,7 @@ ignore = [
   "PLW2901", # PLW2901: Redefined loop variable
   "RET504", # Unnecessary variable assignment before `return` statement
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "S311", # Standard pseudo-random generators are not suitable for cryptographic purposes
   "TRY"
 ]
 line-length = 100

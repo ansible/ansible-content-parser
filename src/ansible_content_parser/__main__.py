@@ -12,37 +12,24 @@ import os
 import shutil
 import sys
 import tarfile
-import typing
 import zipfile
 
 from collections.abc import Generator
 from pathlib import Path
 
+import giturlparse  # pylint: disable=import-error
+
 from ansiblelint.constants import RC
-from ansiblelint.file_utils import Lintable
 from git import Repo
 
 from .lint import ansiblelint_main
+from .lintable_dict import LintableDict
+from .pipeline import run_pipeline
+from .report import generate_report
+from .safe_checks import check_tar_file_is_safe, check_zip_file_is_safe
 
 
 _logger = logging.getLogger(__name__)
-
-
-class LintableDict(dict[str, typing.Any]):
-    """The LintableDict class."""
-
-    def __init__(self, lintable: Lintable) -> None:
-        """Initialize LintableDict."""
-        self["base_kind"] = str(lintable.base_kind)
-        self["dir"] = str(lintable.dir)
-        self["exc"] = None if lintable.exc is None else str(lintable.exc)
-        self["filename"] = str(lintable.filename)
-        self["kind"] = str(lintable.kind)
-        self["name"] = str(lintable.name)
-        self["parent"] = None if lintable.parent is None else str(lintable.parent.name)
-        self["role"] = str(lintable.role)
-        self["stop_processing"] = bool(lintable.stop_processing)
-        self["updated"] = bool(lintable.updated)
 
 
 # https://stackoverflow.com/questions/6194499/pushd-through-os-system
@@ -63,6 +50,9 @@ def execute_ansiblelint(
 ) -> dict[str, list[LintableDict]]:
     """Execute ansible-lint."""
     with pushd(work_dir):
+        # Clear root logger handlers as ansible-lint adds one without checking existing ones.
+        logging.getLogger().handlers.clear()
+
         result, mark_as_success = ansiblelint_main(argv)
         return {
             "files": [LintableDict(lintable) for lintable in result.files],
@@ -71,74 +61,101 @@ def execute_ansiblelint(
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     """Parse arguments."""
-    parser = argparse.ArgumentParser(description="TODO")
-    parser.add_argument(
-        "-t",
-        "--source-type",
-        help="source type",
+    parser = argparse.ArgumentParser(
+        description="Parse Ansible files in the given repository by running ansible-lint and generate"
+        " a training dataset for Ansible Lightspeed.",
     )
     parser.add_argument(
-        "-r",
-        "--repo-name",
-        help="repository name",
+        "--config-file",
+        help=" Specify the configuration file to use for ansible-lint.  "
+        "By default it will look for '.ansible-lint', '.config/ansible-lint.yml', or '.config/ansible-lint.yaml' "
+        "in the source repository.",
+    )
+    parser.add_argument(
+        "--profile",
+        choices=["min", "basic", "moderate", "safety", "shared", "production"],
+        help="Specify which rules profile to be used for ansible-lint",
+    )
+    parser.add_argument(
+        "--skip-transform",
+        action="store_true",
+        help="Skip the transform step of ansible-lint.  If this option is not specified, ansible-lint is executed "
+        "with the --write option and files are transformed according to the rules specified.",
+    )
+    parser.add_argument(
+        "--skip-ansible-lint",
+        action="store_true",
+        help="Skip the execution of ansible-lint.",
     )
     parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
-        help="explain what is being done",
+        help="Explain what is being done",
+    )
+    parser.add_argument(
+        "--source-license",
+        default="",
+        help="Specify the license that will be included in the training dataset.",
+    )
+    parser.add_argument(
+        "--source-description",
+        default="",
+        help="Specify the description of the source that will be included in the training dataset.",
+    )
+    parser.add_argument(
+        "--repo-name",
+        default="",
+        help="Specify the repository name that will be included in the training dataset. "
+        "If it is not specified, it is generated from the source name.",
+    )
+    parser.add_argument(
+        "--repo-url",
+        default="",
+        help="Specify the repository url that will be included in the training dataset. "
+        "If it is not specified, it is generated from the source name.",
     )
     parser.add_argument(
         "source",
-        help="source, which can be an zip/tar archive, a Git URL or a local directory",
+        help="source, which can be an zip/tar archive, a git URL or a local directory",
     )
     parser.add_argument(
         "output",
         help="output directory",
     )
     args = parser.parse_args(argv)
-
-    if not args.output:
-        parser.print_help()
-        sys.exit(1)
-
     args.output = str(Path(args.output).absolute())
+
+    if args.config_file:
+        args.config_file = str(Path(args.config_file).absolute())
 
     return args
 
 
-def main(argv: list[str]) -> int:
-    """Parse arguments and execute the content parser."""
-    args = parse_args(argv)
+def set_repo_name_and_repo_url(args: argparse.Namespace, is_file: bool) -> None:
+    """Set repository name and URL from source name when they are not set explicitly."""
+    if not args.repo_name:
+        repo_name = args.source
+        if repo_name.endswith("/"):
+            repo_name = repo_name[:-1]
+        i = repo_name.rfind("/")
+        if i != -1:
+            repo_name = repo_name[i + 1 :]
+        i = repo_name.find(".")
+        if i != -1:
+            repo_name = repo_name[:i]
+        args.repo_name = repo_name
 
-    prepare_source_and_output(args.source, args.output)
-
-    out_path = Path(args.output)
-    sarif_file = str(out_path / "sarif.json")
-
-    argv = ["__DUMMY__", "--sarif-file", sarif_file, "--write"]
-    if args.verbose:
-        argv.append("-v")
-
-    try:
-        serializable_result = execute_ansiblelint(
-            argv,
-            (Path(args.output) / "repository").as_posix(),
+    if not args.repo_url:
+        args.repo_url = (
+            Path(args.source).absolute().as_uri() if is_file else args.source
         )
-        output_path = Path(args.output)
-        if not output_path.exists():
-            output_path.mkdir(parents=True)
-        with (output_path / "lint-result.json").open("w", encoding="utf-8") as f:
-            f.write(json.dumps(serializable_result, indent=2))
-    except Exception:
-        _logger.exception("An exception was thrown while running ansible-lint.")
-        return -1
-
-    return 0
 
 
-def prepare_source_and_output(source: str, output: str) -> None:
+def prepare_source_and_output(args: argparse.Namespace) -> None:
     """Prepare source (archive/url/directory) and output directory."""
+    source, output = args.source, args.output
+
     supported_tar_file_extensions = [
         ".tar",
         ".tar.gz",
@@ -149,16 +166,14 @@ def prepare_source_and_output(source: str, output: str) -> None:
         ".txz",
     ]
 
-    supported_git_url_prefixes = [
-        "https://",
-        "git@",
-    ]
-
-    output_path = setup_output(output)
+    out_path = setup_output(output)
 
     # Make sure a subdirectory can be created in the output directory
-    repository_path = output_path / "repository"
+    repository_path = out_path / "repository"
     repository_path.mkdir()
+
+    metadata_path = out_path / "metadata"
+    metadata_path.mkdir()
 
     # Check if the specified source is a supported archive.
     if source.endswith(".zip"):
@@ -166,6 +181,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
             check_zip_file_is_safe(source)
             with zipfile.ZipFile(source) as zip_file:
                 zip_file.extractall(repository_path)
+                set_repo_name_and_repo_url(args, True)
                 return
         except Exception:
             _logger.exception(
@@ -180,6 +196,7 @@ def prepare_source_and_output(source: str, output: str) -> None:
                     check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:  # NOSONAR
                         tar.extractall(repository_path)
+                        set_repo_name_and_repo_url(args, True)
                     return
                 except Exception:
                     _logger.exception(
@@ -189,22 +206,23 @@ def prepare_source_and_output(source: str, output: str) -> None:
                     sys.exit(1)
 
     # Check if the specified source is a URL
-    for prefix in supported_git_url_prefixes:
-        if source.startswith(prefix):
-            try:
-                Repo.clone_from(source, repository_path)
-                return
-            except Exception:
-                _logger.exception(
-                    "An exception thrown in cloning git repository %s.",
-                    source,
-                )
-                sys.exit(1)
+    if giturlparse.validate(source):
+        try:
+            Repo.clone_from(source, repository_path)
+            set_repo_name_and_repo_url(args, False)
+            return
+        except Exception:
+            _logger.exception(
+                "An exception thrown in cloning git repository %s.",
+                source,
+            )
+            sys.exit(1)
 
-    # Assume the source is a local director
+    # Assume the source is a local directory
     if Path(source).is_dir():
         repository_path.rmdir()
         shutil.copytree(source, repository_path)
+        set_repo_name_and_repo_url(args, True)
     else:
         _logger.error("%s is not a directory.", source)
         sys.exit(1)
@@ -213,131 +231,88 @@ def prepare_source_and_output(source: str, output: str) -> None:
 def setup_output(output: str) -> Path:
     """Set up output directory."""
     # Check if the specified output directory exists.
-    output_path = Path(output)
-    if not output_path.is_dir():
-        output_path.mkdir(parents=True)
-    # Getting the list of directories
+    out_path = Path(output)
+    if not out_path.is_dir():
+        out_path.mkdir(parents=True)
+
+    # Make sure the directory is empty.
     files = os.listdir(output)
     if len(files) > 0:
         _logger.error("Output directory is not empty.")
         sys.exit(1)
-    return output_path
+
+    return out_path
 
 
-# Ref: https://sonarcloud.io/organizations/ansible/rules?open=python%3AS5042&rule_key=python%3AS5042&tab=how_to_fix
-threshold_entries = 10000
-threshold_size = 1000000000
-threshold_ratio = 10
-
-
-def check_tar_file_is_safe(source: str) -> None:
-    """Make sure that expanding the tar file is safe."""
-    if not tarfile.is_tarfile(source):
-        msg = f"{source} is not a valid tar archive file."
-        raise RuntimeError(
-            msg,
-        )
-
-    total_size_archive = 0
-    total_entry_archive = 0
-
-    with tarfile.open(source) as f:  # NOSONAR
-        for entry in f:
-            tarinfo = f.extractfile(entry)
-
-            total_entry_archive += 1
-            size_entry = 0
-            while True:
-                size_entry += 1024
-                total_size_archive += 1024
-
-                ratio = size_entry / entry.size
-                # Added the check if entry.size is larger than 1024. When it is very small (like 20 bytes or so)
-                # the ratio can exceed the threshold.
-                if entry.size > 1024 and ratio > threshold_ratio:
-                    msg = "ratio between compressed and uncompressed data is highly suspicious, looks like a Zip Bomb Attack"
-                    raise RuntimeError(
-                        msg,
-                    )
-
-                if tarinfo is None:
-                    break
-                chunk = tarinfo.read(1024)
-                if not chunk:
-                    break
-
-            if total_entry_archive > threshold_entries:
-                msg = "too much entries in this archive, can lead to inodes exhaustion of the system"
-                raise RuntimeError(
-                    msg,
-                )
-
-            if total_size_archive > threshold_size:
-                msg = "the uncompressed data size is too much for the application resource capacity"
-                raise RuntimeError(
-                    msg,
-                )
-
-
-def check_zip_file_is_safe(source: str) -> None:
-    """Make sure that expanding the zip file is safe."""
-    if not zipfile.is_zipfile(source):
-        msg = f"{source} is not a valid zip file."
-        raise RuntimeError(
-            msg,
-        )
-
-    total_size_archive = 0
-    total_entry_archive = 0
-
-    with zipfile.ZipFile(source, "r") as f:
-        for info in f.infolist():
-            data = f.read(info)
-            total_entry_archive += 1
-
-            total_size_archive = total_size_archive + len(data)
-            ratio = len(data) / info.compress_size
-            if ratio > threshold_ratio:
-                msg = "ratio between compressed and uncompressed data is highly suspicious, looks like a Zip Bomb Attack"
-                raise RuntimeError(
-                    msg,
-                )
-
-            if total_size_archive > threshold_size:
-                msg = "the uncompressed data size is too much for the application resource capacity"
-                raise RuntimeError(
-                    msg,
-                )
-
-            if total_entry_archive > threshold_entries:
-                msg = "too much entries in this archive, can lead to inodes exhaustion of the system"
-                raise RuntimeError(
-                    msg,
-                )
-
-
-def _run_cli_entrypoint() -> None:
+def main() -> None:
     """Invoke the main entrypoint with current CLI args.
 
     This function also processes the runtime exceptions.
     """
+    return_code = 0
     try:
-        argv = sys.argv[1:]
-        parse_args(argv)
-        return_code = main(argv)
-        if return_code != 0:
-            sys.exit(return_code)
+        args = parse_args(sys.argv[1:])
+        prepare_source_and_output(args)
+
+        out_path = Path(args.output)
+        repository_path = out_path / "repository"
+        metadata_path = out_path / "metadata"
+
+        sarif_file = str(metadata_path / "sarif.json")
+        argv = ["__DUMMY__", "--sarif-file", sarif_file]
+        update_argv(argv, args)
+
+        try:
+            # Execute ansible-lint and create metadata files.
+            if not args.skip_ansible_lint:
+                serializable_result = execute_ansiblelint(
+                    argv,
+                    str(repository_path),
+                )
+                lint_result_path = metadata_path / "lint-result.json"
+                with lint_result_path.open(
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(json.dumps(serializable_result))
+
+            generate_report(
+                "" if args.skip_ansible_lint else str(lint_result_path),
+                sarif_file,
+                args,
+            )
+        except Exception:
+            _logger.exception("An exception was thrown while running ansible-lint.")
+            sys.exit(1)
+
+        return_code = run_pipeline(args)
+
     except OSError as exc:
         # NOTE: Only "broken pipe" is acceptable to ignore
         if exc.errno != errno.EPIPE:  # pragma: no cover
             raise
     except KeyboardInterrupt:  # pragma: no cover
+        _logger.info("Terminated by a keyboard interrupt.")
         sys.exit(RC.EXIT_CONTROL_C)
-    except RuntimeError as exc:  # pragma: no cover
-        raise SystemExit(exc) from exc
+    except RuntimeError:  # pragma: no cover
+        raise
 
     sys.exit(return_code)
 
 
+def update_argv(argv: list[str], args: argparse.Namespace) -> None:
+    """Update arguments to ansible-lint based on arguments given to ansible-content-parser."""
+    if not args.skip_transform:
+        argv.append("--write=all")
+    if args.verbose:
+        argv.append("-v")
+    if args.config_file:
+        argv.append("--config-file")
+        argv.append(args.config_file)
+    if args.profile:
+        argv.append("--profile")
+        argv.append(args.profile)
+
+
 if __name__ == "__main__":
-    _run_cli_entrypoint()
+    main()

@@ -2,7 +2,13 @@ ansiblelint
 commandline
 epel
 epipe
+finetuner
+firewalld
+ftdata
+fqcn
+giturlparse
 inodes
+lightspeed
 lintable
 mockings
 nosonar
@@ -13,4 +19,5 @@ rulesdirs
 sarif
 setuptools
 takamiya
+taskfiles
 timenow
