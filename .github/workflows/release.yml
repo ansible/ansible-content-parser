@@ -1,0 +1,37 @@
+---
+name: release
+
+"on":
+  release:
+    types: [published]
+  workflow_dispatch:
+jobs:
+  pypi-publish:
+    name: Upload release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://test.pypi.org/project/ansible-content-parser/
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install tox
+        run: python3 -m pip install --user "tox==4.9.0"
+
+      - name: Check out src from Git
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed by setuptools-scm
+
+      - name: Build dists
+        run: python -m tox
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
