@@ -81,7 +81,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--skip-transform",
         action="store_true",
         help="Skip the transform step of ansible-lint.  If this option is not specified, ansible-lint is executed "
-        "with the --write option and files are transformed according to the rules specified.",
+        "with the --fix option and files are transformed according to the rules specified.",
     )
     parser.add_argument(
         "--skip-ansible-lint",
@@ -377,7 +377,7 @@ def parse_sarif_json(exclude_paths: list[str], sarif_file: str) -> None:
 def update_argv(argv: list[str], args: argparse.Namespace) -> None:
     """Update arguments to ansible-lint based on arguments given to ansible-content-parser."""
     if not args.skip_transform:
-        argv.append("--write=all")
+        argv.append("--fix=all")
     if args.verbose:
         argv.append("-v")
     if args.config_file:

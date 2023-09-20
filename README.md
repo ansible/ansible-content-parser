@@ -7,7 +7,7 @@ as playbooks, task files, etc. in a given directory.
 
 It runs `ansible-lint` internally against a given
 source directory and
-updates Ansible files (the `--write` option of `ansible-lint`)
+updates Ansible files (the `--fix option of `ansible-lint`)
 and generates the `lint-result.json` file, which summarizes
 files found in the directory and lint errors.
 
@@ -50,7 +50,7 @@ options:
   --profile {min,basic,moderate,safety,shared,production}
                         Specify which rules profile to be used for ansible-lint
   --skip-transform      Skip the transform step of ansible-lint. If this option is not specified, ansible-lint is
-                        executed with the --write option and files are transformed according to the rules specified.
+                        executed with the --fix option and files are transformed according to the rules specified.
   --skip-ansible-lint   Skip the execution of ansible-lint.
   --no-exclude          Do not rerun ansible-lint with excluding files that caused syntax check errors. If one or more
                         syntax check errors were found, execution fails without generating the training dataset.
