@@ -33,6 +33,7 @@ usage: ansible-content-parser [-h] [--config-file CONFIG_FILE]
                               [--profile {min,basic,moderate,safety,shared,production}] [--skip-transform]
                               [--skip-ansible-lint] [--no-exclude] [-v] [--source-license SOURCE_LICENSE]
                               [--source-description SOURCE_DESCRIPTION] [--repo-name REPO_NAME] [--repo-url REPO_URL]
+                              [--version]
                               source output
 
 Parse Ansible files in the given repository by running ansible-lint and generate a training dataset for Ansible
@@ -64,6 +65,7 @@ options:
                         specified, it is generated from the source name.
   --repo-url REPO_URL   Specify the repository url that will be included in the training dataset. If it is not
                         specified, it is generated from the source name.
+  --version             show program's version number and exit
 ```
 
 ### `source` positional argument

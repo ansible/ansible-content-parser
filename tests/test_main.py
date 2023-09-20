@@ -19,6 +19,7 @@ import git
 # pylint: disable=import-error
 from ansible_content_parser.__main__ import (
     get_project_root,
+    get_version,
     main,
     update_argv,
 )
@@ -557,3 +558,11 @@ class TestMain(TestCase):
             project_path2.mkdir()
             path = get_project_root(repository_path)
             assert path.name == repository_path.name
+
+    def test_get_version(self) -> None:
+        version_str = get_version()
+
+        assert "ansible-content-parser" in version_str
+        assert "ansible-lint" in version_str
+        assert "ansible-core" in version_str
+        assert "(not found)" not in version_str

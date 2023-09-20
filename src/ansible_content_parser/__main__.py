@@ -16,18 +16,21 @@ import typing
 import zipfile
 
 from collections.abc import Generator
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import giturlparse  # pylint: disable=import-error
 
 from ansiblelint.constants import RC
 from git import Repo
+from packaging.version import Version
 
 from .lint import ansiblelint_main
 from .lintable_dict import LintableDict
 from .pipeline import run_pipeline
 from .report import generate_report
 from .safe_checks import check_tar_file_is_safe, check_zip_file_is_safe
+from .version import __version__
 
 
 _logger = logging.getLogger(__name__)
@@ -121,6 +124,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default="",
         help="Specify the repository url that will be included in the training dataset. "
         "If it is not specified, it is generated from the source name.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=get_version(),
     )
     parser.add_argument(
         "source",
@@ -301,6 +309,18 @@ def main() -> None:
         raise
 
     sys.exit(return_code)
+
+
+def get_version() -> str:
+    """Return version string that contains versions of important dependents."""
+    msg = f"ansible-content-parser {__version__} using"
+    for k in ["ansible-lint", "ansible-core"]:
+        try:
+            v = Version(version(k))
+            msg += f" {k}:{v}"
+        except PackageNotFoundError:
+            msg += f" {k}:(not found)"
+    return msg
 
 
 def execute_lint_step(
