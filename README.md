@@ -7,7 +7,7 @@ as playbooks, task files, etc. in a given directory.
 
 It runs `ansible-lint` internally against a given
 source directory and
-updates Ansible files (the `--fix option of `ansible-lint`)
+updates Ansible files (the `--fix` option of `ansible-lint`)
 and generates the `lint-result.json` file, which summarizes
 files found in the directory and lint errors.
 
@@ -185,10 +185,9 @@ Following shows an example of a file entry:
     execution because syntax check errors were found in those files on the first execution.
     The files included in the list will not appear in the entries associated with the `files` key.
 
-        - **Note:** If `ansible-content-parser` is executed with the `--no-exclude` option, the second execution
-
-    does not occur even if syntax check errors were found on the first execution and
-    the training dataset will not be created.
+- **Note:** If `ansible-content-parser` is executed with the `--no-exclude` option, the second execution
+  does not occur even if syntax check errors were found on the first execution and
+  the training dataset will not be created.
 
 #### sarif.json
 
