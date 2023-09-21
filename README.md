@@ -18,7 +18,9 @@ the `dist` directory.
 
 ## Installation
 
-_(To be filled later...)_
+```commandline
+pip install ansible-content-parser
+```
 
 ## Execution
 

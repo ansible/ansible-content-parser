@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: release
-      url: https://test.pypi.org/project/ansible-content-parser/
+      url: https://pypi.org/project/ansible-content-parser/
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
@@ -33,5 +33,3 @@ jobs:
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
