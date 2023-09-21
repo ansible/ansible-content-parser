@@ -4,8 +4,7 @@ requires = ["setuptools >= 45", "setuptools_scm[toml]>=6.2"]
 
 [project]
 authors = [
-  {"email" = "ttakamiy@redhat.com", "name" = "Tami Takamiya"},
-  {"email" = "ylahav@redhat.com", "name" = "Yuval Lahav"}
+  {"email" = "ttakamiy@redhat.com", "name" = "Tami Takamiya"}
 ]
 classifiers = [
   'Development Status :: 2 - Pre-Alpha',
@@ -25,7 +24,7 @@ description = "The ansible content parser"
 dynamic = ["dependencies", "optional-dependencies", "version"]
 keywords = ["ansible"]
 license = {text = "Apache"}
-maintainers = [{"email" = "info@ansible.com", "name" = "Ansible by Red Hat"}]
+maintainers = [{"email" = "ttakamiy@redhat.com", "name" = "Tami Takamiya"}]
 name = "ansible-content-parser"
 readme = "README.md"
 requires-python = ">=3.10"
