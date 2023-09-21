@@ -1,4 +1,4 @@
-black # IDE support
+black == 23.7.0 # black-pre-commit-mirror 0.1.0 used in release build depends on this version
 coverage[toml] >= 6.4.4
 mypy # IDE support
 pytest >= 7.2.2
