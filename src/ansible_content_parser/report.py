@@ -20,6 +20,7 @@ _logger = logging.getLogger(__name__)
 _label_count = "Count"
 _label_file_type = "File Type"
 _label_file_path = "File Path"
+_label_file_state = "Updated"
 _label_module_name = "Module Name"
 _label_total = "TOTAL"
 
@@ -78,28 +79,44 @@ def get_file_list_summary(files: list[LintableDict]) -> str:
     entries = []
     max_filename_len = len(_label_file_path)
     max_kind_len = len(_label_file_type)
+    max_state_len = len(_label_file_state)
     kinds = {f["filename"]: f["kind"] for f in files}
+    updated = {f["filename"]: f["updated"] for f in files}
     for filename in sorted(kinds):
         kind = kinds[filename]
         if kind != "":  # Skip files that was not identified by ansible-lint
-            entries.append([filename, kind])
+            state = "updated" if updated[filename] else ""
+            entries.append([filename, kind, state])
             if len(filename) > max_filename_len:
                 max_filename_len = len(filename)
             if len(kind) > max_kind_len:
                 max_kind_len = len(kind)
+            if len(state) > max_state_len:
+                max_state_len = len(state)
 
     num_spaces = 2
-    separator = "-" * (max_filename_len + num_spaces + max_kind_len)
+    separator = "-" * (
+        max_filename_len + num_spaces + max_kind_len + num_spaces + max_state_len
+    )
     summary = separator + "\n"
     summary += (
         _label_file_path.ljust(max_filename_len)
         + " " * num_spaces
-        + _label_file_type
+        + _label_file_type.ljust(max_kind_len)
+        + " " * num_spaces
+        + _label_file_state
         + "\n"
     )
     summary += separator + "\n"
-    for filename, kind in entries:
-        summary += filename.ljust(max_filename_len) + " " * num_spaces + kind + "\n"
+    for filename, kind, state in entries:
+        summary += (
+            filename.ljust(max_filename_len)
+            + " " * num_spaces
+            + kind.ljust(max_kind_len)
+            + " " * num_spaces
+            + state
+            + "\n"
+        )
     summary += separator
 
     return summary
@@ -180,7 +197,29 @@ def get_module_summary(sage_objects: str) -> str:
     return summary
 
 
-def generate_report(json_file: str, sarif_file: str, args: argparse.Namespace) -> None:
+def get_excluded_files(excluded: list[str]) -> str:
+    """Get the list of excluded files in the second ansible-lint run."""
+    max_filename_len = len(_label_file_path)
+    for file_path in excluded:
+        if len(file_path) > max_filename_len:
+            max_filename_len = len(file_path)
+
+    summary = "-" * max_filename_len + "\n"
+    summary += _label_file_path + "\n"
+    summary += "-" * max_filename_len + "\n"
+    for file_path in excluded:
+        summary += f"{file_path}\n"
+    summary += "-" * max_filename_len + "\n"
+
+    return summary
+
+
+def generate_report(
+    json_file: str,
+    sarif_file: str,
+    sarif_file2: str,
+    args: argparse.Namespace,
+) -> None:
     """Generate report."""
     report = f"""
 ********************************************************************************
@@ -199,6 +238,7 @@ Output Directory      : {args.output}
         with Path(json_file).open(encoding="utf-8") as f:
             result = json.load(f)
             files = result["files"]
+            excluded = result.get("excluded", [])
 
         report += f"""
 
@@ -213,7 +253,21 @@ Output Directory      : {args.output}
 
 
 [ Issues found by ansible-lint ]
+"""
+    if sarif_file2:
+        report += f"""
+(First run)
+{get_sarif_summary(metadata_path, sarif_file)}
 
+(Second run)
+
+- Files excluded from the second run due to syntax-check errors found in the first run
+
+{get_excluded_files(excluded)}
+{get_sarif_summary(metadata_path, sarif_file2)}
+"""
+    else:
+        report += f"""
 {get_sarif_summary(metadata_path, sarif_file)}
 """
     with (out_path / _report_txt).open(mode="w") as f:

@@ -12,21 +12,25 @@ import os
 import shutil
 import sys
 import tarfile
+import typing
 import zipfile
 
 from collections.abc import Generator
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 import giturlparse  # pylint: disable=import-error
 
 from ansiblelint.constants import RC
 from git import Repo
+from packaging.version import Version
 
 from .lint import ansiblelint_main
 from .lintable_dict import LintableDict
 from .pipeline import run_pipeline
 from .report import generate_report
 from .safe_checks import check_tar_file_is_safe, check_zip_file_is_safe
+from .version import __version__
 
 
 _logger = logging.getLogger(__name__)
@@ -47,7 +51,7 @@ def pushd(new_dir: str) -> Generator[None, None, None]:
 def execute_ansiblelint(
     argv: list[str],
     work_dir: str,
-) -> dict[str, list[LintableDict]]:
+) -> dict[str, typing.Any]:
     """Execute ansible-lint."""
     with pushd(work_dir):
         # Clear root logger handlers as ansible-lint adds one without checking existing ones.
@@ -80,12 +84,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--skip-transform",
         action="store_true",
         help="Skip the transform step of ansible-lint.  If this option is not specified, ansible-lint is executed "
-        "with the --write option and files are transformed according to the rules specified.",
+        "with the --fix option and files are transformed according to the rules specified.",
     )
     parser.add_argument(
         "--skip-ansible-lint",
         action="store_true",
         help="Skip the execution of ansible-lint.",
+    )
+    parser.add_argument(
+        "--no-exclude",
+        action="store_true",
+        help="Do not rerun ansible-lint with excluding files that caused syntax check errors. If one or more syntax "
+        "check errors were found, execution fails without generating the training dataset.",
     )
     parser.add_argument(
         "-v",
@@ -114,6 +124,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default="",
         help="Specify the repository url that will be included in the training dataset. "
         "If it is not specified, it is generated from the source name.",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=get_version(),
     )
     parser.add_argument(
         "source",
@@ -276,24 +291,7 @@ def main() -> None:
         update_argv(argv, args)
 
         try:
-            # Execute ansible-lint and create metadata files.
-            if not args.skip_ansible_lint:
-                serializable_result = execute_ansiblelint(
-                    argv,
-                    str(repository_path),
-                )
-                lint_result_path = metadata_path / "lint-result.json"
-                with lint_result_path.open(
-                    "w",
-                    encoding="utf-8",
-                ) as f:
-                    f.write(json.dumps(serializable_result))
-
-            generate_report(
-                "" if args.skip_ansible_lint else str(lint_result_path),
-                sarif_file,
-                args,
-            )
+            execute_lint_step(args, argv, metadata_path, repository_path, sarif_file)
         except Exception:
             _logger.exception("An exception was thrown while running ansible-lint.")
             sys.exit(1)
@@ -313,10 +311,93 @@ def main() -> None:
     sys.exit(return_code)
 
 
+def get_version() -> str:
+    """Return version string that contains versions of important dependents."""
+    msg = f"ansible-content-parser {__version__} using"
+    for k in ["ansible-lint", "ansible-core"]:
+        try:
+            v = Version(version(k))
+            msg += f" {k}:{v}"
+        except PackageNotFoundError:
+            msg += f" {k}:(not found)"
+    return msg
+
+
+def execute_lint_step(
+    args: argparse.Namespace,
+    argv: list[str],
+    metadata_path: Path,
+    repository_path: Path,
+    sarif_file: str,
+) -> None:
+    """Execute ansible-lint and create metadata files."""
+    exclude_paths: list[str] = []
+    if not args.skip_ansible_lint:
+        serializable_result = execute_ansiblelint(
+            argv,
+            str(repository_path),
+        )
+        lint_result = str(metadata_path / "lint-result.json")
+        with Path(lint_result).open(
+            "w",
+            encoding="utf-8",
+        ) as f:
+            f.write(json.dumps(serializable_result))
+
+        parse_sarif_json(exclude_paths, sarif_file)
+
+        # If syntax-errors occurred on some files, kick off the second run excluding those files
+        if len(exclude_paths) > 0 and not args.no_exclude:
+            lint_result2 = str(metadata_path / "lint-result-2.json")
+            sarif_file2 = str(metadata_path / "sarif-2.json")
+            argv = ["__DUMMY__", "--sarif-file", sarif_file2]
+            argv.append("--exclude")
+            argv.extend(exclude_paths)
+            update_argv(argv, args)
+            _logger.info(",".join(argv))
+            serializable_result_2 = execute_ansiblelint(
+                argv,
+                str(repository_path),
+            )
+            serializable_result_2["excluded"] = exclude_paths
+
+            with Path(lint_result2).open(mode="w", encoding="utf-8") as f:
+                f.write(json.dumps(serializable_result_2))
+        else:
+            lint_result2 = ""
+            sarif_file2 = ""
+
+    generate_report(
+        "" if args.skip_ansible_lint else lint_result2 if lint_result2 else lint_result,
+        sarif_file,
+        sarif_file2,
+        args,
+    )
+
+    if len(exclude_paths) > 0 and args.no_exclude:
+        msg = "One or more syntax-check errors were found by ansible-lint"
+        raise RuntimeError(msg)
+
+
+def parse_sarif_json(exclude_paths: list[str], sarif_file: str) -> None:
+    """Analyze SARIF.json to see if syntax-check errors occurred or not on the first run."""
+    with Path(sarif_file).open("rb") as f:
+        o = json.load(f)
+        for run in o["runs"]:
+            for result in run["results"]:
+                if result["ruleId"].startswith("syntax-check"):
+                    exclude_paths.extend(
+                        [
+                            location["physicalLocation"]["artifactLocation"]["uri"]
+                            for location in result["locations"]
+                        ],
+                    )
+
+
 def update_argv(argv: list[str], args: argparse.Namespace) -> None:
     """Update arguments to ansible-lint based on arguments given to ansible-content-parser."""
     if not args.skip_transform:
-        argv.append("--write=all")
+        argv.append("--fix=all")
     if args.verbose:
         argv.append("-v")
     if args.config_file:
