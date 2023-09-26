@@ -81,10 +81,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="Specify which rules profile to be used for ansible-lint",
     )
     parser.add_argument(
-        "--skip-transform",
-        action="store_true",
-        help="Skip the transform step of ansible-lint.  If this option is not specified, ansible-lint is executed "
-        "with the --fix option and files are transformed according to the rules specified.",
+        "--fix",
+        dest="write_list",  # This is how this option is stored in ansible_lint.
+        # default="all", <-- Commented out because this does not work as expected.
+        help="Specify how ansible-lint performs auto-fixes, including YAML reformatting. "
+        "You can limit the effective rule transforms (the 'write_list') by passing a "
+        "keywords 'all' (=default) or 'none' or a comma separated list of rule ids or "
+        "rule tags.",
     )
     parser.add_argument(
         "--skip-ansible-lint",
@@ -396,8 +399,10 @@ def parse_sarif_json(exclude_paths: list[str], sarif_file: str) -> None:
 
 def update_argv(argv: list[str], args: argparse.Namespace) -> None:
     """Update arguments to ansible-lint based on arguments given to ansible-content-parser."""
-    if not args.skip_transform:
+    if getattr(args, "write_list", None) is None:
         argv.append("--fix=all")
+    else:
+        argv.append(f"--fix={args.write_list}")
     if args.verbose:
         argv.append("-v")
     if args.config_file:

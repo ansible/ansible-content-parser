@@ -503,7 +503,7 @@ class TestMain(TestCase):
     def test_update_argv(self) -> None:
         """Test __main__.update_argv()."""
         input_data = {
-            "skip_transform": True,
+            "write_list": "none",
             "verbose": True,
             "config_file": "config.file",
             "profile": "basic",
@@ -512,7 +512,7 @@ class TestMain(TestCase):
         argv = ["__DUMMY__"]
         update_argv(argv, args)
 
-        assert "--fix=all" not in argv
+        assert "--fix=none" in argv
         assert "-v" in argv
         assert "--config-file" in argv
         assert "config.file" in argv
@@ -520,7 +520,6 @@ class TestMain(TestCase):
         assert "basic" in argv
 
         input_data = {
-            "skip_transform": False,
             "verbose": False,
             "config_file": None,
             "profile": None,
@@ -533,6 +532,21 @@ class TestMain(TestCase):
         assert "-v" not in argv
         assert "--config-file" not in argv
         assert "--profile" not in argv
+
+        input_data = {
+            "write_list": "command-instead-of-shell,deprecated-local-action,no-log-password",
+            "verbose": False,
+            "config_file": None,
+            "profile": None,
+        }
+        args = argparse.Namespace(**input_data)
+        argv = ["__DUMMY__"]
+        update_argv(argv, args)
+
+        assert (
+            "--fix=command-instead-of-shell,deprecated-local-action,no-log-password"
+            in argv
+        )
 
     def test_get_project_root(self) -> None:
         with temp_dir() as output:

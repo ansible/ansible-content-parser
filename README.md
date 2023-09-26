@@ -30,7 +30,7 @@ with a few optional parameters.
 ```commandline
 $ ansible-content-parser --help
 usage: ansible-content-parser [-h] [--config-file CONFIG_FILE]
-                              [--profile {min,basic,moderate,safety,shared,production}] [--skip-transform]
+                              [--profile {min,basic,moderate,safety,shared,production}] [--fix WRITE_LIST]
                               [--skip-ansible-lint] [--no-exclude] [-v] [--source-license SOURCE_LICENSE]
                               [--source-description SOURCE_DESCRIPTION] [--repo-name REPO_NAME] [--repo-url REPO_URL]
                               [--version]
@@ -50,8 +50,9 @@ options:
                         lint', '.config/ansible-lint.yml', or '.config/ansible-lint.yaml' in the source repository.
   --profile {min,basic,moderate,safety,shared,production}
                         Specify which rules profile to be used for ansible-lint
-  --skip-transform      Skip the transform step of ansible-lint. If this option is not specified, ansible-lint is
-                        executed with the --fix option and files are transformed according to the rules specified.
+  --fix WRITE_LIST      Specify how ansible-lint performs auto-fixes, including YAML reformatting. You can limit the
+                        effective rule transforms (the 'write_list') by passing a keywords 'all' (=default) or 'none'
+                        or a comma separated list of rule ids or rule tags.
   --skip-ansible-lint   Skip the execution of ansible-lint.
   --no-exclude          Do not rerun ansible-lint with excluding files that caused syntax check errors. If one or more
                         syntax check errors were found, execution fails without generating the training dataset.
