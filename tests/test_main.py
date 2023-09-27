@@ -210,6 +210,8 @@ class TestMain(TestCase):
                 testargs = [
                     "ansible-content-parser",
                     "-v",
+                    "--profile",
+                    "min",
                     source.name + "/",  # intentionally add "/" to the end
                     output.name,
                 ]

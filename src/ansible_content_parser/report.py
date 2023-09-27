@@ -74,7 +74,7 @@ def filetype_summary(result: dict[str, list[LintableDict]]) -> str:
     return summary
 
 
-def get_file_list_summary(files: list[LintableDict]) -> str:
+def get_file_list_summary(files: list[LintableDict], excluded_paths: list[str]) -> str:
     """Get summary string from the lintable list."""
     entries = []
     max_filename_len = len(_label_file_path)
@@ -82,10 +82,17 @@ def get_file_list_summary(files: list[LintableDict]) -> str:
     max_state_len = len(_label_file_state)
     kinds = {f["filename"]: f["kind"] for f in files}
     updated = {f["filename"]: f["updated"] for f in files}
+    excluded = {f["filename"]: (f["filename"] in excluded_paths) for f in files}
     for filename in sorted(kinds):
         kind = kinds[filename]
         if kind != "":  # Skip files that was not identified by ansible-lint
-            state = "updated" if updated[filename] else ""
+            state = (
+                "excluded"
+                if excluded[filename]
+                else "updated"
+                if updated[filename]
+                else ""
+            )
             entries.append([filename, kind, state])
             if len(filename) > max_filename_len:
                 max_filename_len = len(filename)
@@ -216,9 +223,11 @@ def get_excluded_files(excluded: list[str]) -> str:
 
 def generate_report(
     json_file: str,
+    json_file2: str,
     sarif_file: str,
     sarif_file2: str,
     args: argparse.Namespace,
+    excluded_paths: list[str],
 ) -> None:
     """Generate report."""
     report = f"""
@@ -238,6 +247,11 @@ Output Directory      : {args.output}
         with Path(json_file).open(encoding="utf-8") as f:
             result = json.load(f)
             files = result["files"]
+
+    last_json_file = json_file2 if json_file2 else json_file
+    if last_json_file:
+        with Path(last_json_file).open(encoding="utf-8") as f:
+            result = json.load(f)
             excluded = result.get("excluded", [])
 
         report += f"""
@@ -249,7 +263,7 @@ Output Directory      : {args.output}
 
 [ List of Ansible files identified ]
 
-{get_file_list_summary(files)}
+{get_file_list_summary(files, excluded_paths)}
 
 
 [ Issues found by ansible-lint ]

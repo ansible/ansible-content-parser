@@ -98,6 +98,6 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
             ",".join(options.mock_filters),
         )
 
-    app.report_outcome(result, mark_as_success=mark_as_success)
+    return_code = app.report_outcome(result, mark_as_success=mark_as_success)
 
-    return result, mark_as_success
+    return result, mark_as_success, return_code

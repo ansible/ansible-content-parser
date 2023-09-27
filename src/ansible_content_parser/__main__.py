@@ -12,12 +12,12 @@ import os
 import shutil
 import sys
 import tarfile
-import typing
 import zipfile
 
 from collections.abc import Generator
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import Any
 
 import giturlparse  # pylint: disable=import-error
 
@@ -51,16 +51,16 @@ def pushd(new_dir: str) -> Generator[None, None, None]:
 def execute_ansiblelint(
     argv: list[str],
     work_dir: str,
-) -> dict[str, typing.Any]:
+) -> tuple[dict[str, list[Any]], int]:
     """Execute ansible-lint."""
     with pushd(work_dir):
         # Clear root logger handlers as ansible-lint adds one without checking existing ones.
         logging.getLogger().handlers.clear()
 
-        result, mark_as_success = ansiblelint_main(argv)
+        result, mark_as_success, return_code = ansiblelint_main(argv)
         return {
             "files": [LintableDict(lintable) for lintable in result.files],
-        }
+        }, return_code
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -97,8 +97,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--no-exclude",
         action="store_true",
-        help="Do not rerun ansible-lint with excluding files that caused syntax check errors. If one or more syntax "
-        "check errors were found, execution fails without generating the training dataset.",
+        help="Do not let ansible-content-parser to generate training dataset by "
+        "excluding files that caused lint errors. With this option specified, "
+        "a single lint error terminates the execution without generating the "
+        "training dataset.",
     )
     parser.add_argument(
         "-v",
@@ -336,7 +338,7 @@ def execute_lint_step(
     """Execute ansible-lint and create metadata files."""
     exclude_paths: list[str] = []
     if not args.skip_ansible_lint:
-        serializable_result = execute_ansiblelint(
+        serializable_result, return_code = execute_ansiblelint(
             argv,
             str(repository_path),
         )
@@ -347,54 +349,79 @@ def execute_lint_step(
         ) as f:
             f.write(json.dumps(serializable_result))
 
-        parse_sarif_json(exclude_paths, sarif_file)
+        if return_code == RC.SUCCESS or not args.no_exclude:
+            exclude_paths = parse_sarif_json(exclude_paths, sarif_file, True)
 
-        # If syntax-errors occurred on some files, kick off the second run excluding those files
-        if len(exclude_paths) > 0 and not args.no_exclude:
-            lint_result2 = str(metadata_path / "lint-result-2.json")
-            sarif_file2 = str(metadata_path / "sarif-2.json")
-            argv = ["__DUMMY__", "--sarif-file", sarif_file2]
-            argv.append("--exclude")
-            argv.extend(exclude_paths)
-            update_argv(argv, args)
-            _logger.info(",".join(argv))
-            serializable_result_2 = execute_ansiblelint(
-                argv,
-                str(repository_path),
-            )
-            serializable_result_2["excluded"] = exclude_paths
+            # If syntax-errors occurred on some files, kick off the second run excluding those files
+            if len(exclude_paths) > 0:
+                lint_result2 = str(metadata_path / "lint-result-2.json")
+                sarif_file2 = str(metadata_path / "sarif-2.json")
+                argv = ["__DUMMY__", "--sarif-file", sarif_file2]
+                argv.append("--exclude")
+                argv.extend(exclude_paths)
+                update_argv(argv, args)
+                _logger.info(",".join(argv))
+                serializable_result_2, return_code = execute_ansiblelint(
+                    argv,
+                    str(repository_path),
+                )
+                serializable_result_2["excluded"] = exclude_paths
+                exclude_paths = parse_sarif_json(exclude_paths, sarif_file2, False)
 
-            with Path(lint_result2).open(mode="w", encoding="utf-8") as f:
-                f.write(json.dumps(serializable_result_2))
-        else:
-            lint_result2 = ""
-            sarif_file2 = ""
+                _rename_excluded_files(exclude_paths, repository_path)
+
+                with Path(lint_result2).open(mode="w", encoding="utf-8") as f:
+                    f.write(json.dumps(serializable_result_2))
+            else:
+                exclude_paths = parse_sarif_json(exclude_paths, sarif_file, False)
+                lint_result2 = ""
+                sarif_file2 = ""
 
     generate_report(
-        "" if args.skip_ansible_lint else lint_result2 if lint_result2 else lint_result,
+        lint_result,
+        lint_result2,
         sarif_file,
         sarif_file2,
         args,
+        exclude_paths,
     )
 
-    if len(exclude_paths) > 0 and args.no_exclude:
-        msg = "One or more syntax-check errors were found by ansible-lint"
+    if return_code != RC.SUCCESS and args.no_exclude:
+        msg = "One or more lint errors were found by ansible-lint"
         raise RuntimeError(msg)
 
 
-def parse_sarif_json(exclude_paths: list[str], sarif_file: str) -> None:
+def _rename_excluded_files(exclude_paths: list[str], repository_path: Path) -> None:
+    with pushd(str(repository_path)):
+        for p in exclude_paths:
+            path = Path(p)
+            # Do not attempt to rename directories (e.g. role names)
+            if path.is_file():
+                Path(p).rename(p + ".__EXCLUDED__")
+
+
+def parse_sarif_json(
+    exclude_paths: list[str],
+    sarif_file: str,
+    syntax_check_errors_only: bool,
+) -> list[str]:
     """Analyze SARIF.json to see if syntax-check errors occurred or not on the first run."""
     with Path(sarif_file).open("rb") as f:
         o = json.load(f)
         for run in o["runs"]:
             for result in run["results"]:
-                if result["ruleId"].startswith("syntax-check"):
+                if (
+                    result["ruleId"].startswith("syntax-check")
+                    or not syntax_check_errors_only
+                    and ("level" not in result or result["level"] == "error")
+                ):
                     exclude_paths.extend(
                         [
                             location["physicalLocation"]["artifactLocation"]["uri"]
                             for location in result["locations"]
                         ],
                     )
+    return sorted(set(exclude_paths))
 
 
 def update_argv(argv: list[str], args: argparse.Namespace) -> None:
