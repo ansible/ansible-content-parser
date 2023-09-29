@@ -292,7 +292,7 @@ def main() -> None:
         metadata_path = out_path / "metadata"
 
         sarif_file = str(metadata_path / "sarif.json")
-        argv = ["__DUMMY__", "--sarif-file", sarif_file]
+        argv = ["ansible-lint", "--sarif-file", sarif_file]
         update_argv(argv, args)
 
         try:
@@ -337,7 +337,15 @@ def execute_lint_step(
 ) -> None:
     """Execute ansible-lint and create metadata files."""
     exclude_paths: list[str] = []
-    if not args.skip_ansible_lint:
+
+    lint_result = ""
+    lint_result2 = ""
+    sarif_file2 = ""
+    return_code = RC.SUCCESS
+
+    if args.skip_ansible_lint:
+        sarif_file = ""
+    else:
         serializable_result, return_code = execute_ansiblelint(
             argv,
             str(repository_path),
@@ -356,7 +364,7 @@ def execute_lint_step(
             if len(exclude_paths) > 0:
                 lint_result2 = str(metadata_path / "lint-result-2.json")
                 sarif_file2 = str(metadata_path / "sarif-2.json")
-                argv = ["__DUMMY__", "--sarif-file", sarif_file2]
+                argv = ["ansible-lint", "--sarif-file", sarif_file2]
                 argv.append("--exclude")
                 argv.extend(exclude_paths)
                 update_argv(argv, args)
@@ -374,8 +382,6 @@ def execute_lint_step(
                     f.write(json.dumps(serializable_result_2))
             else:
                 exclude_paths = parse_sarif_json(exclude_paths, sarif_file, False)
-                lint_result2 = ""
-                sarif_file2 = ""
 
     generate_report(
         lint_result,

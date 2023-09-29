@@ -1,4 +1,6 @@
 ansiblelint
+autofix
+autofixed
 clamav
 clamscan
 commandline

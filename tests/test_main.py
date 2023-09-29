@@ -222,9 +222,58 @@ class TestMain(TestCase):
 
                 assert context.exception.code == 0, "The exit code should be 0"
 
+                found_file_counts_section = False
                 with (Path(output.name) / "report.txt").open("r") as f:
                     for line in f:
+                        if "[ File counts per type ]" in line:
+                            found_file_counts_section = True
                         if line == "Module Name     Count\n":
+                            assert found_file_counts_section is True
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "service             2\n"
+                            line = f.readline()
+                            assert line == "yum                 2\n"
+                            line = f.readline()
+                            assert line == "firewalld           1\n"
+                            line = f.readline()
+                            assert line == "meta                1\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "TOTAL               6\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+
+    def test_cli_with_local_directory_with_no_ansible_lint(self) -> None:
+        """Run the CLI with a local directory."""
+        with temp_dir() as source:
+            self._create_repo(source)
+            self._add_second_playbook(source)
+            self._add_third_playbook(source)
+            with temp_dir() as output:
+                testargs = [
+                    "ansible-content-parser",
+                    "-v",
+                    "--skip-ansible-lint",
+                    source.name,
+                    output.name,
+                ]
+                with patch.object(sys, "argv", testargs), self.assertRaises(
+                    SystemExit,
+                ) as context:
+                    main()
+
+                assert context.exception.code == 0, "The exit code should be 0"
+
+                found_file_counts_section = False
+                with (Path(output.name) / "report.txt").open("r") as f:
+                    for line in f:
+                        if "[ File counts per type ]" in line:
+                            found_file_counts_section = True
+                        if line == "Module Name     Count\n":
+                            assert found_file_counts_section is False
                             line = f.readline()
                             assert line == "---------------------\n"
                             line = f.readline()

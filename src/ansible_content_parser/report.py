@@ -20,7 +20,7 @@ _logger = logging.getLogger(__name__)
 _label_count = "Count"
 _label_file_type = "File Type"
 _label_file_path = "File Path"
-_label_file_state = "Updated"
+_label_file_state = "Excluded/Autofixed"
 _label_module_name = "Module Name"
 _label_total = "TOTAL"
 
@@ -89,7 +89,7 @@ def get_file_list_summary(files: list[LintableDict], excluded_paths: list[str]) 
             state = (
                 "excluded"
                 if excluded[filename]
-                else "updated"
+                else "autofixed"
                 if updated[filename]
                 else ""
             )
@@ -281,7 +281,8 @@ Output Directory      : {args.output}
 {get_sarif_summary(metadata_path, sarif_file2)}
 """
     else:
-        report += f"""
+        if sarif_file:
+            report += f"""
 {get_sarif_summary(metadata_path, sarif_file)}
 """
     with (out_path / _report_txt).open(mode="w") as f:

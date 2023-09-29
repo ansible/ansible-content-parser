@@ -2,14 +2,12 @@
 
 ## Overview
 
-`ansible-content-parser` used for analyze Ansible files, such
-as playbooks, task files, etc. in a given directory.
-
-It runs `ansible-lint` internally against a given
-source directory and
-updates Ansible files (the `--fix` option of `ansible-lint`)
-and generates the `lint-result.json` file, which summarizes
-files found in the directory and lint errors.
+`ansible-content-parser` analyzes Ansible files in a given source
+(a local directory, an archive file or a git URL)
+by running `ansible-lint` internally,
+updates Ansible files using the [Autofix feature of `ansible-lint`](https://ansible.readthedocs.io/projects/lint/autofix/)
+and generates the `ftdata.json` file, which is the training dataset
+for developing custom AI models used with Ansible Lightspeed.
 
 ## Build
 
@@ -54,8 +52,9 @@ options:
                         effective rule transforms (the 'write_list') by passing a keywords 'all' (=default) or 'none'
                         or a comma separated list of rule ids or rule tags.
   --skip-ansible-lint   Skip the execution of ansible-lint.
-  --no-exclude          Do not rerun ansible-lint with excluding files that caused syntax check errors. If one or more
-                        syntax check errors were found, execution fails without generating the training dataset.
+  --no-exclude          Do not let ansible-content-parser to generate training dataset by excluding files that caused
+                        lint errors. With this option specified, a single lint error terminates the execution without
+                        generating the training dataset.
   -v, --verbose         Explain what is being done
   --source-license SOURCE_LICENSE
                         Specify the license that will be included in the training dataset.
