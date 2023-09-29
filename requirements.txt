@@ -7,7 +7,7 @@
 ansible==8.4.0
 ansible-compat==4.1.10
 ansible-core==2.15.4
-ansible-lint==6.20.0
+ansible-lint==6.20.1
 ansible-risk-insight==0.2.0
 attrs==23.1.0
 black==23.7.0
