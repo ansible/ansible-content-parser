@@ -49,7 +49,7 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
 
     # pylint: disable=import-outside-toplevel
     from ansiblelint.rules import RulesCollection
-    from ansiblelint.runner import _get_matches
+    from ansiblelint.runner import get_matches
 
     app = get_app(offline=None)  # to be sure we use the offline value from settings
     rules = RulesCollection(
@@ -61,7 +61,7 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
 
     if isinstance(options.tags, str):
         options.tags = options.tags.split(",")  # pragma: no cover
-    result = _get_matches(rules, options)
+    result = get_matches(rules, options)
 
     if options.write_list:
         ruamel_safe_version = "0.17.26"
