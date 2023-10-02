@@ -5,6 +5,7 @@ via :command:`python -m ansible_content_parser`.
 """
 import argparse
 import contextlib
+import copy  # pylint: disable=preferred-module
 import errno
 import json
 import logging
@@ -373,7 +374,9 @@ def execute_lint_step(
                     argv,
                     str(repository_path),
                 )
-                serializable_result_2["excluded"] = exclude_paths
+                # create a shallow copy of exclude_paths because the following parse_sarif_json() call
+                # will add more files to the list.
+                serializable_result_2["excluded"] = copy.copy(exclude_paths)
                 exclude_paths = parse_sarif_json(exclude_paths, sarif_file2, False)
 
                 _rename_excluded_files(exclude_paths, repository_path)
