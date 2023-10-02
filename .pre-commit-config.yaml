@@ -78,7 +78,7 @@ repos:
         additional_dependencies:
           - pytest
           - tox
-          - ansible-lint>=6.20.1
+          - ansible-lint>=6.20.2
           - GitPython
 
   - repo: https://github.com/pre-commit/mirrors-mypy.git
