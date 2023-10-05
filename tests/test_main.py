@@ -417,6 +417,7 @@ class TestMain(TestCase):
                         assert o["repo_name"] == "test_repo"
                         assert o["repo_url"] == "https://repo.example.com/test_repo"
                         assert o["license"] == "Apache"
+                        assert o["module"] != ""
 
     def test_cli_with_invalid_tarball(self) -> None:
         """Run the CLI with an invalid tarball."""
