@@ -21,6 +21,7 @@ class _FTRecord(TypedDict):
     data_source_description: str
     input: str
     license: str
+    module: str
     output: str
     path: str
     repo_name: str
@@ -36,6 +37,7 @@ def _gen_ftdata(task: Task, parent: SageObject) -> _FTRecord:
         data_source_description="",
         input="",
         license="",
+        module="",
         output="",
         path="",
         repo_name="",
@@ -44,6 +46,7 @@ def _gen_ftdata(task: Task, parent: SageObject) -> _FTRecord:
 
     record["data_source_description"] = task.source.get("data_source_description", "")
     record["license"] = task.source.get("license", "")
+    record["module"] = task.module
     record["repo_url"] = task.source.get("repo_url", "")
     record["repo_name"] = task.source.get("repo_name", "")
     record["path"] = task.filepath
