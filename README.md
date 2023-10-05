@@ -20,7 +20,8 @@ the `dist` directory.
 
 - Python version 3.10 or later.
 - UNIX OS, such as Linux or Mac OS.
-  ` **Note:** Installation on Microsoft Windows OS is not supported.
+
+**Note:** Installation on Microsoft Windows OS is not supported.
 
 ### Procedure
 
@@ -32,22 +33,22 @@ a Python virtual environment with the following steps:
 1. Create a working directory and set up venv Python virtual environment:
 
 ```commandline
-$ python -m venv ./venv
-$ source ./venv/bin/activate
+python -m venv ./venv
+source ./venv/bin/activate
 ```
 
 2. Install `ansible-content-parser` from the pip repository:
 
 ```commandline
-$ pip install --upgrade pip
-$ pip install --upgrade ansible-content-parser
+pip install --upgrade pip
+pip install --upgrade ansible-content-parser
 ```
 
 3. After the installation is completed, verify that `ansible-content-parser` and `ansible-lint` are installed correctly:
 
 ```commandline
-$ ansible-content-parser --version
-$ ansible-lint --version
+ansible-content-parser --version
+ansible-lint --version
 ```
 
 A list of application versions and their dependencies are displayed.
@@ -69,16 +70,20 @@ If the `ansible-lint` versions do not match, perform the following tasks:
 1. Deactivate and reactivate venv:
 
 ```commandline
-$ deactivate
-$ source ./venv/bin/activate
+deactivate
+source ./venv/bin/activate
 ```
 
 2. Verify that the `ansible-lint` versions match:
 
 ```commandline
-$ ansible-content-parser --version
-$ ansible-lint --version
+ansible-content-parser --version
+ansible-lint --version
+```
+
 For example, the following output shows the same ansible-lint versions:
+
+```
 $ ansible-content-parser --version
 ansible-content-parser 0.0.1 using ansible-lint:6.20.0 ansible-core:2.15.4
 $ ansible-lint --version
