@@ -3,6 +3,7 @@ autofix
 autofixed
 clamav
 clamscan
+clib
 commandline
 dbcache
 dbfile
