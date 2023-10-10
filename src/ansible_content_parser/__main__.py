@@ -379,12 +379,19 @@ def execute_lint_step(
                 serializable_result_2["excluded"] = copy.copy(exclude_paths)
                 exclude_paths = parse_sarif_json(exclude_paths, sarif_file2, False)
 
-                _rename_excluded_files(exclude_paths, repository_path)
-
                 with Path(lint_result2).open(mode="w", encoding="utf-8") as f:
                     f.write(json.dumps(serializable_result_2))
             else:
                 exclude_paths = parse_sarif_json(exclude_paths, sarif_file, False)
+
+            if len(exclude_paths) > 0:
+                # Rename excluded files to have __EXCLUDED__ extension so that they won't be processed by sage
+                _rename_excluded_files(exclude_paths, repository_path)
+                _logger.warning(
+                    "Following files are excluded from training set generation due to ansible-lint rule "
+                    "violations: %s",
+                    ",".join(exclude_paths),
+                )
 
     generate_report(
         lint_result,

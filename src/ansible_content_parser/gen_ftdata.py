@@ -115,5 +115,8 @@ def gen_ftdata_json(sage_objects_json: str, ftdata_json: str) -> None:
                         task.yaml_lines,
                     )
 
-    with Path(ftdata_json).open("w", encoding="utf-8") as file:
-        file.write("".join(record_lines))
+    if len(record_lines) == 0:
+        _logger.warning("No training data set was created.")
+    else:
+        with Path(ftdata_json).open("w", encoding="utf-8") as file:
+            file.write("".join(record_lines))
