@@ -246,6 +246,44 @@ class TestMain(TestCase):
                             line = f.readline()
                             assert line == "---------------------\n"
 
+    def test_cli_with_local_directory_with_production_profile(self) -> None:
+        """Run the CLI with a local directory."""
+        with temp_dir() as source:
+            self._create_repo(source)
+            self._add_second_playbook(source)
+            # self._add_third_playbook(source)
+            with temp_dir() as output:
+                testargs = [
+                    "ansible-content-parser",
+                    "-v",
+                    "--profile",
+                    "production",
+                    source.name + "/",  # intentionally add "/" to the end
+                    output.name,
+                ]
+                with patch.object(sys, "argv", testargs), self.assertRaises(
+                    SystemExit,
+                ) as context:
+                    main()
+
+                assert context.exception.code == 0, "The exit code should be 0"
+
+                found_file_counts_section = False
+                with (Path(output.name) / "report.txt").open("r") as f:
+                    for line in f:
+                        if "[ File counts per type ]" in line:
+                            found_file_counts_section = True
+                        if line == "Module Name     Count\n":
+                            assert found_file_counts_section is True
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+                            line = f.readline()
+                            assert line == "TOTAL               0\n"
+                            line = f.readline()
+                            assert line == "---------------------\n"
+
     def test_cli_with_local_directory_with_no_ansible_lint(self) -> None:
         """Run the CLI with a local directory."""
         with temp_dir() as source:
@@ -401,6 +439,7 @@ class TestMain(TestCase):
                     "test_repo",
                     "--repo-url",
                     "https://repo.example.com/test_repo",
+                    "--skip-ansible-lint",
                     str(Path(source.name) / f"{repo_name}.tar.gz"),
                     output.name,
                 ]
@@ -551,6 +590,10 @@ class TestMain(TestCase):
                     main()
 
                 assert context.exception.code == 1, "The exit code should be 1"
+
+
+class TestCommandInterface(TestCase):
+    """Test command interface, e.g. arguments, etc."""
 
     def test_update_argv(self) -> None:
         """Test __main__.update_argv()."""

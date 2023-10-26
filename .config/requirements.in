@@ -1,6 +1,6 @@
 # Special order section for helping pip:
 will-not-work-on-windows-try-from-wsl-instead; platform_system=='Windows'
-ansible-lint>=6.20.2
+ansible-lint>=6.20.3
 GitPython
 giturlparse
 sarif-tools
