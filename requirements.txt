@@ -22,7 +22,7 @@ cycler==0.11.0
 filelock==3.12.4
 fonttools==4.42.1
 gitdb==4.0.10
-gitpython==3.1.36
+gitpython==3.1.37
 giturlparse==0.11.1
 idna==3.4
 jinja2==3.1.2
