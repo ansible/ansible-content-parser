@@ -121,7 +121,8 @@ options:
   --fix WRITE_LIST      Specify how ansible-lint performs auto-fixes, including YAML reformatting. You can limit the
                         effective rule transforms (the 'write_list') by passing a keywords 'all' (=default) or 'none'
                         or a comma separated list of rule ids or rule tags.
-  --skip-ansible-lint   Skip the execution of ansible-lint.
+  -S, --skip-ansible-lint
+                        Skip the execution of ansible-lint.
   --no-exclude          Do not let ansible-content-parser to generate training dataset by excluding files that caused
                         lint errors. With this option specified, a single lint error terminates the execution without
                         generating the training dataset.
