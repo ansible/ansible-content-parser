@@ -284,7 +284,7 @@ class TestMain(TestCase):
                             line = f.readline()
                             assert line == "---------------------\n"
 
-    def sub_test_cli_with_local_directory_with_no_ansible_lint(self, option) -> None:
+    def sub_test_cli_with_local_directory_with_no_ansible_lint(self, option: str) -> None:
         """Run the CLI with a local directory."""
         with temp_dir() as source:
             self._create_repo(source)
@@ -329,13 +329,19 @@ class TestMain(TestCase):
                             line = f.readline()
                             assert line == "---------------------\n"
 
-    def test_cli_with_local_directory_with_no_ansible_lint_with_long_option(self) -> None:
-        """Run the CLI with a local directory with the --skip-ansible-lint option"""
-        self.sub_test_cli_with_local_directory_with_no_ansible_lint('--skip-ansible-lint')
+    def test_cli_with_local_directory_with_no_ansible_lint_with_long_option(
+        self,
+    ) -> None:
+        """Run the CLI with a local directory with the --skip-ansible-lint option."""
+        self.sub_test_cli_with_local_directory_with_no_ansible_lint(
+            "--skip-ansible-lint",
+        )
 
-    def test_cli_with_local_directory_with_no_ansible_lint_with_short_option(self) -> None:
-        """Run the CLI with a local directory with the -S option"""
-        self.sub_test_cli_with_local_directory_with_no_ansible_lint('-S')
+    def test_cli_with_local_directory_with_no_ansible_lint_with_short_option(
+        self,
+    ) -> None:
+        """Run the CLI with a local directory with the -S option."""
+        self.sub_test_cli_with_local_directory_with_no_ansible_lint("-S")
 
     def test_cli_with_local_directory_with_no_exclude(self) -> None:
         """Run the CLI with a local directory."""
