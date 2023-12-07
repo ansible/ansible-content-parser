@@ -285,7 +285,8 @@ class TestMain(TestCase):
                             assert line == "---------------------\n"
 
     def sub_test_cli_with_local_directory_with_no_ansible_lint(
-        self, option: str,
+        self,
+        option: str,
     ) -> None:
         """Run the CLI with a local directory."""
         with temp_dir() as source:
