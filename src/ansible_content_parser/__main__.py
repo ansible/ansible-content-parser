@@ -91,6 +91,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "rule tags.",
     )
     parser.add_argument(
+        "-S",
         "--skip-ansible-lint",
         action="store_true",
         help="Skip the execution of ansible-lint.",
