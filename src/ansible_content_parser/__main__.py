@@ -321,7 +321,7 @@ def main() -> None:
 def get_version() -> str:
     """Return version string that contains versions of important dependents."""
     msg = f"ansible-content-parser {__version__} using"
-    for k in ["ansible-lint", "ansible-core"]:
+    for k in ["ansible-lint", "ansible-core", "sage-scan"]:
         try:
             v = Version(version(k))
             msg += f" {k}:{v}"
