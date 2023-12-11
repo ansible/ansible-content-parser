@@ -5,3 +5,4 @@ GitPython
 giturlparse
 sarif-tools
 sage-scan>=0.0.3
+ansible-risk-insight>=0.2.4
