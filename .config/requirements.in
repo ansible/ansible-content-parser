@@ -4,4 +4,5 @@ ansible-lint>=6.20.3
 GitPython
 giturlparse
 sarif-tools
-sage-scan
+sage-scan>=0.0.3
+ansible-risk-insight>=0.2.4

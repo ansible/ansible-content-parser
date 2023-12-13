@@ -691,4 +691,5 @@ class TestCommandInterface(TestCase):
         assert "ansible-content-parser" in version_str
         assert "ansible-lint" in version_str
         assert "ansible-core" in version_str
+        assert "sage-scan" in version_str
         assert "(not found)" not in version_str
