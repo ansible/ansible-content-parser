@@ -7,7 +7,7 @@
 ansible==8.4.0
 ansible-compat==4.1.10
 ansible-core==2.15.4
-ansible-lint==6.20.3
+ansible-lint==6.22.1
 ansible-risk-insight==0.2.4
 attrs==23.1.0
 black==23.7.0
@@ -56,7 +56,7 @@ requests==2.31.0
 resolvelib==1.0.1
 rich==13.5.2
 rpds-py==0.10.3
-ruamel-yaml==0.17.32
+ruamel-yaml==0.18.5
 ruamel-yaml-clib==0.2.7
 sage-scan==0.0.3
 sarif-tools==1.0.0
