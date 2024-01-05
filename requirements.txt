@@ -58,7 +58,7 @@ rich==13.5.2
 rpds-py==0.10.3
 ruamel-yaml==0.18.5
 ruamel-yaml-clib==0.2.7
-sage-scan==0.0.3
+sage-scan==0.0.4
 sarif-tools==1.0.0
 six==1.16.0
 smmap==5.0.0
