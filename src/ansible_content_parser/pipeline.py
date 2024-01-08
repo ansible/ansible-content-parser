@@ -6,7 +6,7 @@ import os
 
 from pathlib import Path
 
-from .gen_ftdata import gen_ftdata_json
+from .gen_ftdata import gen_ftdata_jsonl
 from .report import add_module_summary
 
 
@@ -19,7 +19,7 @@ def run_pipeline(args: argparse.Namespace, repository_path: Path) -> int:
     metadata_path = out_path / "metadata"
 
     report_path = out_path / "report.txt"
-    ftdata_path = out_path / "ftdata.json"
+    ftdata_path = out_path / "ftdata.jsonl"
     lint_result_path = metadata_path / "lint-result.json"
     sage_objects_path = metadata_path / "sage-objects.json"
 
@@ -50,7 +50,7 @@ def run_pipeline(args: argparse.Namespace, repository_path: Path) -> int:
     )
 
     # Generate FT Data
-    gen_ftdata_json(
+    gen_ftdata_jsonl(
         str(sage_objects_path),
         str(ftdata_path),
     )

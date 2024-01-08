@@ -221,6 +221,7 @@ class TestMain(TestCase):
                     main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
+                assert os.environ["ANSIBLE_LINT_NODEPS"] == "1"
 
                 found_file_counts_section = False
                 with (Path(output.name) / "report.txt").open("r") as f:
@@ -236,13 +237,15 @@ class TestMain(TestCase):
                             line = f.readline()
                             assert line == "yum                 2\n"
                             line = f.readline()
+                            assert line == "ec2                 1\n"
+                            line = f.readline()
                             assert line == "firewalld           1\n"
                             line = f.readline()
                             assert line == "meta                1\n"
                             line = f.readline()
                             assert line == "---------------------\n"
                             line = f.readline()
-                            assert line == "TOTAL               6\n"
+                            assert line == "TOTAL               7\n"
                             line = f.readline()
                             assert line == "---------------------\n"
 
@@ -466,7 +469,7 @@ class TestMain(TestCase):
 
                     assert context.exception.code == 0, "The exit code should be 0"
 
-                with (Path(output.name) / "ftdata.json").open("r") as f:
+                with (Path(output.name) / "ftdata.jsonl").open("r") as f:
                     for line in f:
                         o = json.loads(line)
                         assert o["data_source_description"] == "This is a repo for test"
