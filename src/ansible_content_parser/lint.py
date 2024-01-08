@@ -1,12 +1,18 @@
 """Invoke ansible-lint."""
 from __future__ import annotations
 
+import os
 import sys
 
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ansiblelint.__main__ import (
+
+# Set the ANSIBLE_LINT_NODEPS envvar to "1" in order to avoid performing checks that would fail
+# when modules are not installed. Far less ansible-lint violations will be reported.
+os.environ["ANSIBLE_LINT_NODEPS"] = "1"
+
+from ansiblelint.__main__ import (  # noqa: E402
     _do_transform,
     _logger,
     _perform_mockings_cleanup,
@@ -18,7 +24,7 @@ from ansiblelint.__main__ import (
     options,
     path_inject,
 )
-from ansiblelint.color import (
+from ansiblelint.color import (  # noqa: E402
     console_options,
     reconfigure,
 )
