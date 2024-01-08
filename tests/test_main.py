@@ -466,7 +466,7 @@ class TestMain(TestCase):
 
                     assert context.exception.code == 0, "The exit code should be 0"
 
-                with (Path(output.name) / "ftdata.json").open("r") as f:
+                with (Path(output.name) / "ftdata.jsonl").open("r") as f:
                     for line in f:
                         o = json.loads(line)
                         assert o["data_source_description"] == "This is a repo for test"

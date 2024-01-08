@@ -6,7 +6,7 @@
 (a local directory, an archive file or a git URL)
 by running `ansible-lint` internally,
 updates Ansible files using the [Autofix feature of `ansible-lint`](https://ansible.readthedocs.io/projects/lint/autofix/)
-and generates the `ftdata.json` file, which is the training dataset for
+and generates the `ftdata.jsonl` file, which is the training dataset for
 developing custom AI models.
 
 ## Build
@@ -174,7 +174,7 @@ positional argument.
 
 ```
 output/
-  |-- ftdata.json  # Training dataset
+  |-- ftdata.jsonl # Training dataset
   |-- report.txt   # A human-readable report
   |
   |-- repository/
@@ -186,7 +186,7 @@ output/
         |-- (other metadata files generated)
 ```
 
-### ftdata.json
+### ftdata.jsonl
 
 This is the training dataset file, which is the main output of `ansible-content-parser`.
 

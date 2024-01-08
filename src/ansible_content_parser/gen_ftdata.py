@@ -92,8 +92,8 @@ def _gen_ftdata(task: Task, parent: SageObject) -> _FTRecord:
     return record
 
 
-def gen_ftdata_json(sage_objects_json: str, ftdata_json: str) -> None:
-    """Generate ftdata.json file."""
+def gen_ftdata_jsonl(sage_objects_json: str, ftdata_jsonl: str) -> None:
+    """Generate ftdata.jsonl file."""
     record_lines = []
     for project in load_objects(sage_objects_json).projects():
         parents = []
@@ -118,5 +118,5 @@ def gen_ftdata_json(sage_objects_json: str, ftdata_json: str) -> None:
     if len(record_lines) == 0:
         _logger.warning("No training data set was created.")
     else:
-        with Path(ftdata_json).open("w", encoding="utf-8") as file:
+        with Path(ftdata_jsonl).open("w", encoding="utf-8") as file:
             file.write("".join(record_lines))
