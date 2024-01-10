@@ -69,7 +69,8 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
         options.tags = options.tags.split(",")  # pragma: no cover
     result = get_matches(rules, options)
 
-    if options.write_list:
+    # Perform autofix if it is directed and no syntax check errors were found.
+    if options.write_list and not _syntax_check_errors_found(result):
         ruamel_safe_version = "0.17.26"
         from packaging.version import Version
         from ruamel.yaml import __version__ as ruamel_yaml_version_str
@@ -107,3 +108,10 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
     return_code = app.report_outcome(result, mark_as_success=mark_as_success)
 
     return result, mark_as_success, return_code
+
+
+def _syntax_check_errors_found(result: LintResult) -> bool:
+    """Check if syntax check errors were found or not."""
+    return any(
+        match.tag and match.tag.startswith("syntax-check") for match in result.matches
+    )
