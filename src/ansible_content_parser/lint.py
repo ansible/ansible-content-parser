@@ -69,18 +69,9 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
         options.tags = options.tags.split(",")  # pragma: no cover
     result = get_matches(rules, options)
 
+    # Perform autofix if it is directed and no syntax check errors were found.
     if options.write_list:
-        ruamel_safe_version = "0.17.26"
-        from packaging.version import Version
-        from ruamel.yaml import __version__ as ruamel_yaml_version_str
-
-        if Version(ruamel_safe_version) > Version(ruamel_yaml_version_str):
-            _logger.warning(
-                "We detected use of `--write` feature with a buggy ruamel-yaml %s library instead of >=%s, upgrade it before reporting any bugs like dropped comments.",
-                ruamel_yaml_version_str,
-                ruamel_safe_version,
-            )
-        _do_transform(result, options)
+        _transform(result)
 
     mark_as_success = True
 
@@ -107,3 +98,29 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
     return_code = app.report_outcome(result, mark_as_success=mark_as_success)
 
     return result, mark_as_success, return_code
+
+
+def _transform(result: LintResult) -> None:
+    """Perform autofix when there is no syntax-check error."""
+    if _syntax_check_errors_found(result):
+        _logger.info("Autofix is suppressed as syntax-check errors are found.")
+    else:
+        ruamel_safe_version = "0.17.26"
+        # pylint: disable=import-outside-toplevel
+        from packaging.version import Version
+        from ruamel.yaml import __version__ as ruamel_yaml_version_str
+
+        if Version(ruamel_safe_version) > Version(ruamel_yaml_version_str):
+            _logger.warning(
+                "We detected use of `--write` feature with a buggy ruamel-yaml %s library instead of >=%s, upgrade it before reporting any bugs like dropped comments.",
+                ruamel_yaml_version_str,
+                ruamel_safe_version,
+            )
+        _do_transform(result, options)
+
+
+def _syntax_check_errors_found(result: LintResult) -> bool:
+    """Check if syntax check errors were found or not."""
+    return any(
+        match.tag and match.tag.startswith("syntax-check") for match in result.matches
+    )

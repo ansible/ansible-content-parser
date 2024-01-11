@@ -246,13 +246,20 @@ Output Directory      : {args.output}
     if json_file:
         with Path(json_file).open(encoding="utf-8") as f:
             result = json.load(f)
-            files = result["files"]
+            files_all = result["files"]
 
     last_json_file = json_file2 if json_file2 else json_file
     if last_json_file:
         with Path(last_json_file).open(encoding="utf-8") as f:
             result = json.load(f)
+            files = result["files"]
             excluded = result.get("excluded", [])
+
+            # If the "last" JSON file was the one obtained from the second run,
+            # it does not contain the information about the excluded files.
+            # If it is the case, add those files in the JSON file from the first run.
+            if last_json_file != json_file:
+                files += [f for f in files_all if f["filename"] in excluded]
 
         report += f"""
 
