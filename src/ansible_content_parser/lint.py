@@ -112,6 +112,9 @@ def ansiblelint_main(argv: list[str] | None = None) -> LintResult:
 
 def _syntax_check_errors_found(result: LintResult) -> bool:
     """Check if syntax check errors were found or not."""
-    return any(
+    rc = any(
         match.tag and match.tag.startswith("syntax-check") for match in result.matches
     )
+    if rc:
+        _logger.info("Autofix is suppressed as syntax-check errors are found.")
+    return rc
