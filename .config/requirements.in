@@ -6,3 +6,4 @@ giturlparse
 sarif-tools
 sage-scan>=0.0.4
 ansible-risk-insight>=0.2.4
+black == 23.7.0 # Specify the same version as the one in requirements-test.txt
