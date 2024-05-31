@@ -1,4 +1,4 @@
-black == 23.7.0 # black-pre-commit-mirror 0.1.0 used in release build depends on this version
+black
 mypy
 pip-tools
 pre-commit
