@@ -1,4 +1,5 @@
 """Defines LintableDict class."""
+
 import typing
 
 from ansiblelint.file_utils import Lintable

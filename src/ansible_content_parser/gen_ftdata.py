@@ -1,4 +1,5 @@
 """Generate FT data."""
+
 import json
 import logging
 

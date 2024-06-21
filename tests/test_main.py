@@ -1,4 +1,5 @@
 """Test __main__.py."""
+
 import argparse
 import contextlib
 import json
@@ -215,9 +216,12 @@ class TestMain(TestCase):
                     source.name + "/",  # intentionally add "/" to the end
                     output.name,
                 ]
-                with patch.object(sys, "argv", testargs), self.assertRaises(
-                    SystemExit,
-                ) as context:
+                with (
+                    patch.object(sys, "argv", testargs),
+                    self.assertRaises(
+                        SystemExit,
+                    ) as context,
+                ):
                     main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
@@ -264,9 +268,12 @@ class TestMain(TestCase):
                     source.name + "/",  # intentionally add "/" to the end
                     output.name,
                 ]
-                with patch.object(sys, "argv", testargs), self.assertRaises(
-                    SystemExit,
-                ) as context:
+                with (
+                    patch.object(sys, "argv", testargs),
+                    self.assertRaises(
+                        SystemExit,
+                    ) as context,
+                ):
                     main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
@@ -304,9 +311,12 @@ class TestMain(TestCase):
                     source.name,
                     output.name,
                 ]
-                with patch.object(sys, "argv", testargs), self.assertRaises(
-                    SystemExit,
-                ) as context:
+                with (
+                    patch.object(sys, "argv", testargs),
+                    self.assertRaises(
+                        SystemExit,
+                    ) as context,
+                ):
                     main()
 
                 assert context.exception.code == 0, "The exit code should be 0"
@@ -363,9 +373,12 @@ class TestMain(TestCase):
                     source.name + "/",  # intentionally add "/" to the end
                     output.name,
                 ]
-                with patch.object(sys, "argv", testargs), self.assertRaises(
-                    SystemExit,
-                ) as context:
+                with (
+                    patch.object(sys, "argv", testargs),
+                    self.assertRaises(
+                        SystemExit,
+                    ) as context,
+                ):
                     main()
 
                     assert context.exception.code == 1, "The exit code should be 1"

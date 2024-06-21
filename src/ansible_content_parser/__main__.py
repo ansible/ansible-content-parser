@@ -3,6 +3,7 @@
 This makes it possible to invoke CLI
 via :command:`python -m ansible_content_parser`.
 """
+
 import argparse
 import contextlib
 import copy  # pylint: disable=preferred-module
@@ -198,7 +199,7 @@ def prepare_source_and_output(args: argparse.Namespace) -> Path:
             check_zip_file_is_safe(source)
             with zipfile.ZipFile(source) as zip_file:
                 repository_path.mkdir()
-                zip_file.extractall(repository_path)
+                zip_file.extractall(repository_path)  # noqa: S202
                 metadata_path.mkdir()
                 set_repo_name_and_repo_url(args, True)
                 return get_project_root(repository_path)
@@ -215,7 +216,7 @@ def prepare_source_and_output(args: argparse.Namespace) -> Path:
                     check_tar_file_is_safe(source)
                     with tarfile.open(source) as tar:  # NOSONAR
                         repository_path.mkdir()
-                        tar.extractall(repository_path)
+                        tar.extractall(repository_path)  # noqa: S202
                         metadata_path.mkdir()
                         set_repo_name_and_repo_url(args, True)
                     return get_project_root(repository_path)

@@ -1,4 +1,5 @@
 """Generate reports."""
+
 import argparse
 import datetime
 import json
@@ -40,8 +41,7 @@ def filetype_summary(result: dict[str, list[LintableDict]]) -> str:
         count = str(counts[kind])
         total += counts[kind]
         entries.append([kind_str, count])
-        if len(kind_str) > max_kind_len:
-            max_kind_len = len(kind_str)
+        max_kind_len = max(max_kind_len, len(kind_str))
 
     max_count_len = max(len(str(total)), len(_label_count))
 
@@ -89,17 +89,12 @@ def get_file_list_summary(files: list[LintableDict], excluded_paths: list[str]) 
             state = (
                 "excluded"
                 if excluded[filename]
-                else "autofixed"
-                if updated[filename]
-                else ""
+                else "autofixed" if updated[filename] else ""
             )
             entries.append([filename, kind, state])
-            if len(filename) > max_filename_len:
-                max_filename_len = len(filename)
-            if len(kind) > max_kind_len:
-                max_kind_len = len(kind)
-            if len(state) > max_state_len:
-                max_state_len = len(state)
+            max_filename_len = max(max_filename_len, len(filename))
+            max_kind_len = max(max_kind_len, len(kind))
+            max_state_len = max(max_state_len, len(state))
 
     num_spaces = 2
     separator = "-" * (
@@ -172,8 +167,7 @@ def get_module_summary(sage_objects: str) -> str:
         count = str(counts[module])
         total += counts[module]
         entries.append([module, count])
-        if len(module) > max_module_len:
-            max_module_len = len(module)
+        max_module_len = max(max_module_len, len(module))
 
     max_count_len = max(len(str(total)), len(_label_count))
 
@@ -208,8 +202,7 @@ def get_excluded_files(excluded: list[str]) -> str:
     """Get the list of excluded files in the second ansible-lint run."""
     max_filename_len = len(_label_file_path)
     for file_path in excluded:
-        if len(file_path) > max_filename_len:
-            max_filename_len = len(file_path)
+        max_filename_len = max(max_filename_len, len(file_path))
 
     summary = "-" * max_filename_len + "\n"
     summary += _label_file_path + "\n"
