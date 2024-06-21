@@ -293,10 +293,11 @@ lines-after-imports = 2 # Ensures consistency for cases when there's variable vs
 lines-between-types = 1 # Separate import/from with 1 line
 
 [tool.ruff.per-file-ignores]
+# PT027 Allow unittest-style assertion
 # S101 Allow assert in tests
 # S602 Allow shell in test
 # T201 Allow print in tests
-"tests/**" = ["S101", "S602", "T201"]
+"tests/**" = ["PT027", "S101", "S602", "T201"]
 
 [tool.ruff.pydocstyle]
 convention = "pep257"

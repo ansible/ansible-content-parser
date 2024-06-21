@@ -1,4 +1,5 @@
 """Test safe checks for tar/zip files."""
+
 import os
 import random
 import string
