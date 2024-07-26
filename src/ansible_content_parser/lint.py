@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 # when modules are not installed. Far less ansible-lint violations will be reported.
 os.environ["ANSIBLE_LINT_NODEPS"] = "1"
 
-from ansiblelint.__main__ import (  # noqa: E402
+from ansiblelint.__main__ import (
     _do_transform,
     _logger,
     _perform_mockings_cleanup,
@@ -25,7 +25,7 @@ from ansiblelint.__main__ import (  # noqa: E402
     options,
     path_inject,
 )
-from ansiblelint.color import (  # noqa: E402
+from ansiblelint.color import (
     console_options,
     reconfigure,
 )
