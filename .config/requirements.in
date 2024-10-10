@@ -1,10 +1,10 @@
 # Special order section for helping pip:
 will-not-work-on-windows-try-from-wsl-instead; platform_system=='Windows'
-ansible-lint>=24.2.3
+ansible-lint>=24.9.2
 GitPython
 giturlparse
 sarif-tools
 sage-scan>=0.0.4
-ansible-risk-insight>=0.2.4
+ansible-risk-insight>=0.2.9
 black
 pygit2
