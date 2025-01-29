@@ -7,5 +7,5 @@ giturlparse
 sarif-tools
 sage-scan>=0.0.4
 ansible-risk-insight>=0.2.9
-black
+black==24.4.2
 pygit2
