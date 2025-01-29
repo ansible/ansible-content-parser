@@ -1,4 +1,3 @@
-black
 coverage[toml] >= 6.4.4
 mypy # IDE support
 pytest >= 7.2.2
